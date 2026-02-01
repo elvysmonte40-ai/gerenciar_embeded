@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colors - Microsoft Fluent Palette */
+  --color-brand: #0078D4; /* Brand Blue */
+  --color-brand-dark: #106EBE;
+  --color-brand-light: #DEECF9;
+  
+  --color-surface: #FAF9F8; /* Off-white background */
+  --color-surface-card: #FFFFFF;
+  
+  --color-text-primary: #201F1E;
+  --color-text-secondary: #605E5C;
+
+  /* Fonts */
+  --font-sans: "Segoe UI", "Inter", system-ui, sans-serif;
+  
+  /* Radius */
+  --radius-card: 0.75rem; /* 12px */
+  --radius-button: 0.375rem; /* 6px */
+}
+
+/* Base Utility Layers */
+@layer base {
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    @apply antialiased;
+  }
+}

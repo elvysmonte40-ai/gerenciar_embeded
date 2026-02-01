@@ -1,0 +1,71 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content="SaaS B2B Platform" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title} | Gerenciar B2B</title>
+  </head>
+  <body class="bg-surface text-text-primary h-screen flex flex-col overflow-hidden">
+    
+    <!-- 1. Global Header -->
+    <header class="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-20 shadow-sm relative">
+      <div class="flex items-center gap-8">
+        <a href="/" class="text-xl font-semibold text-brand tracking-tight flex items-center gap-2">
+          <span>🔷</span> Gerenciar
+        </a>
+        
+        <!-- Module Navigation -->
+        <nav class="hidden md:flex gap-6">
+          <a href="/dashboard" class="text-sm font-medium text-text-primary hover:text-brand border-b-2 border-transparent hover:border-brand py-4 transition-colors">
+            Dashboards
+          </a>
+          <a href="/users" class="text-sm font-medium text-text-secondary hover:text-brand border-b-2 border-transparent hover:border-brand py-4 transition-colors">
+            Usuários
+          </a>
+          <a href="#" class="text-sm font-medium text-text-secondary opacity-50 cursor-not-allowed" title="Em breve">
+            Indicadores
+          </a>
+        </nav>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <button class="text-sm font-medium text-text-secondary hover:text-brand">Empresa Demo</button>
+        <div class="h-8 w-8 rounded-full bg-brand-light text-brand font-bold flex items-center justify-center text-xs ring-2 ring-white">
+          JS
+        </div>
+      </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+      <!-- 2. Context Sidebar -->
+      <aside class="w-64 bg-gray-50/50 border-r border-gray-200 flex flex-col shrink-0">
+        <div class="p-4">
+          <slot name="sidebar">
+            <p class="text-xs text-text-secondary px-2">Menu Principal</p>
+          </slot>
+        </div>
+      </aside>
+
+      <!-- 3. Main Content -->
+      <main class="flex-1 overflow-auto bg-surface p-6 md:p-8">
+        <div class="max-w-7xl mx-auto h-full flex flex-col">
+          <slot />
+        </div>
+      </main>
+    </div>
+
+  </body>
+</html>
