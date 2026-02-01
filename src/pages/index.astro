@@ -1,11 +1,48 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+import AppLayout from '../layouts/AppLayout.astro';
 ---
 
-<Layout>
-	<Welcome />
-</Layout>
+<AppLayout title="Início">
+  <div class="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center space-y-6">
+    <div class="space-y-2">
+      <h1 class="text-4xl font-bold text-text-primary tracking-tight">Bem-vindo ao Gerenciar B2B</h1>
+      <p class="text-lg text-text-secondary max-w-xl mx-auto">
+        Sua plataforma unificada para gestão empresarial, indicadores e performance.
+      </p>
+    </div>
+
+    <div class="flex gap-4">
+      <a 
+        href="/dashboard" 
+        class="px-6 py-3 bg-brand text-white font-semibold rounded-lg shadow-md hover:bg-brand-dark transition-colors"
+      >
+        Acessar Dashboards
+      </a>
+      <a 
+        href="#" 
+        class="px-6 py-3 bg-white border border-gray-300 text-text-primary font-semibold rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
+      >
+        Documentação
+      </a>
+    </div>
+
+    <!-- Features Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 w-full max-w-4xl text-left">
+      <div class="p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div class="text-2xl mb-2">📊</div>
+        <h3 class="font-semibold text-lg text-text-primary mb-1">Power BI Integrado</h3>
+        <p class="text-sm text-text-secondary">Visualize seus dados em tempo real sem sair da plataforma.</p>
+      </div>
+      <div class="p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div class="text-2xl mb-2">👥</div>
+        <h3 class="font-semibold text-lg text-text-primary mb-1">Multi-usuários</h3>
+        <p class="text-sm text-text-secondary">Gestão completa de acesso com níveis de permissão.</p>
+      </div>
+      <div class="p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div class="text-2xl mb-2">🔒</div>
+        <h3 class="font-semibold text-lg text-text-primary mb-1">Segurança Enterprise</h3>
+        <p class="text-sm text-text-secondary">Seus dados isolados e protegidos com tecnologia de ponta.</p>
+      </div>
+    </div>
+  </div>
+</AppLayout>
