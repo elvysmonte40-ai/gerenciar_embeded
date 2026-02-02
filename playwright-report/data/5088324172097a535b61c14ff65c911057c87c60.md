@@ -1,0 +1,84 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "🔷 Gerenciar" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e5]: 🔷
+        - text: Gerenciar
+      - navigation [ref=e6]:
+        - link "Dashboards" [ref=e7] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Usuários" [ref=e8] [cursor=pointer]:
+          - /url: /users
+        - link "Indicadores" [ref=e9]:
+          - /url: "#"
+    - generic [ref=e10]:
+      - button "Empresa Demo" [ref=e11]
+      - generic [ref=e12]: JS
+  - generic [ref=e13]:
+    - complementary [ref=e14]:
+      - paragraph [ref=e16]: Menu Principal
+    - main [ref=e17]:
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - heading "Crie sua conta" [level=2] [ref=e22]
+          - paragraph [ref=e23]: Comece a transformar a gestão da sua empresa hoje.
+        - generic [ref=e25]:
+          - img [ref=e27]
+          - heading "Erro ao criar organização. Tente novamente." [level=3] [ref=e30]
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - generic [ref=e33]:
+              - heading "Dados da Empresa" [level=3] [ref=e34]
+              - generic [ref=e35]:
+                - generic [ref=e36]:
+                  - generic [ref=e37]: Nome da Empresa
+                  - textbox "Nome da Empresa" [ref=e38]: Empresa Teste Playwright
+                - generic [ref=e39]:
+                  - generic [ref=e40]: CNPJ
+                  - textbox "CNPJ" [ref=e41]:
+                    - /placeholder: CNPJ (Opcional)
+                    - text: 00.000.000/0001-00
+                - generic [ref=e42]:
+                  - generic [ref=e43]: Segmento
+                  - combobox "Segmento" [ref=e44]:
+                    - option "Selecione o Segmento" [disabled]
+                    - option "Varejo"
+                    - option "Serviços"
+                    - option "Indústria"
+                    - option "Tecnologia" [selected]
+                    - option "Outro"
+            - generic [ref=e45]:
+              - heading "Dados do Administrador" [level=3] [ref=e46]
+              - generic [ref=e47]:
+                - generic [ref=e48]:
+                  - generic [ref=e49]: Nome Completo
+                  - textbox "Nome Completo" [ref=e50]:
+                    - /placeholder: Seu Nome Completo
+                    - text: Admin Teste
+                - generic [ref=e51]:
+                  - generic [ref=e52]: Email corporativo
+                  - textbox "Email corporativo" [ref=e53]: admin_test_1770040071711@example.com
+                - generic [ref=e54]:
+                  - generic [ref=e55]: Senha
+                  - textbox "Senha" [ref=e56]: password123
+          - button "Criar Conta" [ref=e58]
+  - generic [ref=e61]:
+    - button "Menu" [ref=e62]:
+      - img [ref=e64]
+      - generic: Menu
+    - button "Inspect" [ref=e68]:
+      - img [ref=e70]
+      - generic: Inspect
+    - button "Audit" [ref=e72]:
+      - generic [ref=e73]:
+        - img [ref=e74]
+        - img [ref=e77]
+      - generic: Audit
+    - button "Settings" [ref=e80]:
+      - img [ref=e82]
+      - generic: Settings
+```
