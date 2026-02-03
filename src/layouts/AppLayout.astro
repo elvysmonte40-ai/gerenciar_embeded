@@ -1,11 +1,19 @@
 ---
-import '../styles/global.css';
+import "../styles/global.css";
 
 interface Props {
   title: string;
+  disableNav?: boolean;
+  showAuthButtons?: boolean;
+  fullWidth?: boolean;
 }
 
-const { title } = Astro.props;
+const {
+  title,
+  disableNav = false,
+  showAuthButtons = false,
+  fullWidth = false,
+} = Astro.props;
 ---
 
 <!doctype html>
@@ -18,54 +26,276 @@ const { title } = Astro.props;
     <meta name="generator" content={Astro.generator} />
     <title>{title} | Gerenciar B2B</title>
   </head>
-  <body class="bg-surface text-text-primary h-screen flex flex-col overflow-hidden">
-    
+  <body
+    class="bg-surface text-text-primary h-screen flex flex-col overflow-hidden"
+  >
     <!-- 1. Global Header -->
-    <header class="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-20 shadow-sm relative">
+    <header
+      class="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-20 shadow-sm relative"
+    >
       <div class="flex items-center gap-8">
-        <a href="/" class="text-xl font-semibold text-brand tracking-tight flex items-center gap-2">
+        <a
+          href="/"
+          class="text-xl font-semibold text-brand tracking-tight flex items-center gap-2"
+        >
           <span>🔷</span> Gerenciar
         </a>
-        
+
         <!-- Module Navigation -->
-        <nav class="hidden md:flex gap-6">
-          <a href="/dashboard" class="text-sm font-medium text-text-primary hover:text-brand border-b-2 border-transparent hover:border-brand py-4 transition-colors">
-            Dashboards
-          </a>
-          <a href="/users" class="text-sm font-medium text-text-secondary hover:text-brand border-b-2 border-transparent hover:border-brand py-4 transition-colors">
-            Usuários
-          </a>
-          <a href="#" class="text-sm font-medium text-text-secondary opacity-50 cursor-not-allowed" title="Em breve">
-            Indicadores
-          </a>
-        </nav>
+        {
+          !disableNav && (
+            <nav class="hidden md:flex gap-6">
+              <a
+                href="/dashboard"
+                class="text-sm font-medium text-text-primary hover:text-brand border-b-2 border-transparent hover:border-brand py-4 transition-colors"
+              >
+                Dashboards
+              </a>
+              <a
+                href="/users"
+                class="text-sm font-medium text-text-secondary hover:text-brand border-b-2 border-transparent hover:border-brand py-4 transition-colors"
+              >
+                Usuários
+              </a>
+              <a
+                href="#"
+                class="text-sm font-medium text-text-secondary opacity-50 cursor-not-allowed"
+                title="Em breve"
+              >
+                Indicadores
+              </a>
+            </nav>
+          )
+        }
       </div>
 
       <div class="flex items-center gap-4">
-        <button class="text-sm font-medium text-text-secondary hover:text-brand">Empresa Demo</button>
-        <div class="h-8 w-8 rounded-full bg-brand-light text-brand font-bold flex items-center justify-center text-xs ring-2 ring-white">
-          JS
+        <!-- Guest Nav (Login/Register) -->
+        {
+          showAuthButtons && (
+            <div id="guest-buttons" class="flex items-center gap-3">
+              <a
+                href="/login"
+                class="hidden md:inline-flex text-sm font-semibold text-brand hover:underline px-3 py-2"
+              >
+                Entrar
+              </a>
+              <a
+                href="/register"
+                class="inline-flex items-center justify-center rounded-md text-sm font-semibold bg-brand text-white hover:bg-brand-dark px-4 py-2 shadow-sm transition-colors"
+              >
+                Criar conta
+              </a>
+            </div>
+          )
+        }
+
+        <!-- User Info (Hidden by default, shown via JS) -->
+        <div id="user-info" class="relative" style="display: none;">
+          <button
+            id="user-menu-button"
+            class="flex items-center gap-3 p-1 rounded-full hover:bg-gray-50 transition-colors focus:outline-none"
+          >
+            <span
+              id="org-name"
+              class="text-sm font-medium text-text-secondary hidden md:block"
+              >Empresa</span
+            >
+            <div
+              id="user-avatar"
+              class="h-8 w-8 rounded-full bg-brand-light text-brand font-bold flex items-center justify-center text-xs ring-2 ring-white shadow-sm"
+            >
+              U
+            </div>
+          </button>
+
+          <!-- Dropdown Menu -->
+          <div
+            id="user-dropdown"
+            class="hidden absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50 transform origin-top-right transition-all duration-200"
+            role="menu"
+          >
+            <div class="px-4 py-3 border-b border-gray-100">
+              <p
+                class="text-xs text-text-secondary uppercase tracking-wider font-semibold"
+              >
+                Logado como
+              </p>
+              <p
+                id="user-email"
+                class="text-sm font-medium text-text-primary truncate mt-1"
+              >
+                ...
+              </p>
+            </div>
+
+            <div class="py-1">
+              <button
+                id="logout-button"
+                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-brand flex items-center gap-2 transition-colors"
+                role="menuitem"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  ></path>
+                </svg>
+                Sair
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </header>
 
     <div class="flex flex-1 overflow-hidden">
       <!-- 2. Context Sidebar -->
-      <aside class="w-64 bg-gray-50/50 border-r border-gray-200 flex flex-col shrink-0">
-        <div class="p-4">
-          <slot name="sidebar">
-            <p class="text-xs text-text-secondary px-2">Menu Principal</p>
-          </slot>
-        </div>
-      </aside>
+      {
+        !disableNav && (
+          <aside class="w-64 bg-gray-50/50 border-r border-gray-200 flex flex-col shrink-0">
+            <div class="p-4 h-full flex flex-col">
+              <slot name="sidebar">
+                <p class="text-xs text-text-secondary px-2">Menu Principal</p>
+              </slot>
+            </div>
+          </aside>
+        )
+      }
 
       <!-- 3. Main Content -->
-      <main class="flex-1 overflow-auto bg-surface p-6 md:p-8">
-        <div class="max-w-7xl mx-auto h-full flex flex-col">
+      <main
+        class={`flex-1 overflow-auto bg-surface ${fullWidth ? "p-0" : "p-6 md:p-8"}`}
+      >
+        <div
+          class={`${fullWidth ? "h-full flex flex-col" : "max-w-7xl mx-auto h-full flex flex-col"}`}
+        >
           <slot />
         </div>
       </main>
     </div>
 
+    <script>
+      import { supabase } from "../lib/supabase";
+
+      const updateHeader = async () => {
+        try {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          const userInfo = document.getElementById("user-info");
+          const guestButtons = document.getElementById("guest-buttons");
+          const orgNameEl = document.getElementById("org-name");
+          const avatarEl = document.getElementById("user-avatar");
+
+          if (!session?.user) {
+            // User not logged in
+            if (userInfo) userInfo.style.display = "none";
+            if (guestButtons) guestButtons.style.display = "flex";
+            return;
+          }
+
+          // User logged in
+          if (guestButtons) guestButtons.style.display = "none";
+
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select(
+              `
+              full_name,
+              organizations (
+                name
+              )
+            `,
+            )
+            .eq("id", session.user.id)
+            .single();
+
+          if (profile && userInfo) {
+            // Update Org Name
+            if (orgNameEl && profile.organizations) {
+              // @ts-ignore
+              orgNameEl.textContent = profile.organizations.name;
+            }
+
+            // Update Initials
+            if (avatarEl && profile.full_name) {
+              const initials = profile.full_name
+                .split(" ")
+                .map((n: any) => n[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase();
+              avatarEl.textContent = initials;
+            }
+
+            // Update Email
+            const emailEl = document.getElementById("user-email");
+            if (emailEl && session.user.email) {
+              emailEl.textContent = session.user.email;
+            }
+
+            userInfo.style.display = "block";
+          }
+        } catch (e) {
+          console.error("Error updating header:", e);
+        }
+      };
+
+      updateHeader();
+
+      // Dropdown Logic
+      const menuButton = document.getElementById("user-menu-button");
+      const dropdown = document.getElementById("user-dropdown");
+      const logoutBtn = document.getElementById("logout-button");
+
+      if (menuButton && dropdown) {
+        menuButton.addEventListener("click", (e) => {
+          e.stopPropagation();
+          dropdown.classList.toggle("hidden");
+        });
+
+        // Close on click outside
+        document.addEventListener("click", (e) => {
+          if (
+            !menuButton.contains(e.target as Node) &&
+            !dropdown.contains(e.target as Node)
+          ) {
+            dropdown.classList.add("hidden");
+          }
+        });
+      }
+
+      // Logout Logic
+      if (logoutBtn) {
+        logoutBtn.addEventListener("click", async () => {
+          await supabase.auth.signOut();
+          window.location.href = "/login";
+        });
+      }
+
+      // Listen for auth changes
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (event === "SIGNED_OUT") {
+          const userInfo = document.getElementById("user-info");
+          const guestButtons = document.getElementById("guest-buttons");
+          if (userInfo) userInfo.style.display = "none";
+          if (guestButtons) guestButtons.style.display = "flex";
+          // Redirect to login if on protected page (optional, but handled by page logic usually)
+          // window.location.href = "/login";
+        } else if (event === "SIGNED_IN") {
+          updateHeader();
+        }
+      });
+    </script>
   </body>
 </html>

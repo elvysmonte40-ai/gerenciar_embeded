@@ -2,7 +2,12 @@
 import AppLayout from "../layouts/AppLayout.astro";
 ---
 
-<AppLayout title="Bem-vindo ao Gerenciar B2B - Gestão Unificada">
+<AppLayout
+  title="Bem-vindo ao Gerenciar B2B - Gestão Unificada"
+  disableNav={true}
+  showAuthButtons={true}
+  fullWidth={true}
+>
   <!-- Hero Section -->
   <div class="relative overflow-hidden bg-white">
     <div class="absolute inset-0 z-0 opacity-30">
@@ -34,19 +39,32 @@ import AppLayout from "../layouts/AppLayout.astro";
         escalável. Projetado para empresas que buscam eficiência.
       </p>
 
-      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-        <a
-          href="/register"
-          class="px-8 py-4 bg-brand text-white text-lg font-semibold rounded-lg shadow-lg hover:bg-brand-dark hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
+      <div class="w-full max-w-lg mx-auto mb-8">
+        <form
+          action="/register"
+          method="GET"
+          class="flex flex-col sm:flex-row gap-3"
         >
-          Começar Agora
-        </a>
-        <a
-          href="/login"
-          class="px-8 py-4 bg-white border border-gray-200 text-text-primary text-lg font-semibold rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
-        >
-          Já tenho conta
-        </a>
+          <input
+            type="email"
+            name="email"
+            placeholder="Digite seu e-mail corporativo"
+            required
+            class="flex-1 px-5 py-4 text-base md:text-lg border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-brand focus:border-brand outline-none transition-all"
+          />
+          <button
+            type="submit"
+            class="px-8 py-4 bg-brand text-white text-lg font-semibold rounded-lg shadow-md hover:bg-brand-dark hover:shadow-lg transition-all duration-200 whitespace-nowrap"
+          >
+            Começar
+          </button>
+        </form>
+        <div class="text-center mt-4">
+          <span class="text-text-secondary">Já tem uma conta?</span>
+          <a href="/login" class="text-brand font-semibold hover:underline ml-1"
+            >Fazer Login</a
+          >
+        </div>
       </div>
     </div>
   </div>

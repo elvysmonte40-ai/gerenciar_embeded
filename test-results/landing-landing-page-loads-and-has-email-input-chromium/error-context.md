@@ -1,0 +1,73 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "🔷 Gerenciar" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e5]: 🔷
+        - text: Gerenciar
+      - navigation [ref=e6]:
+        - link "Dashboards" [ref=e7] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Usuários" [ref=e8] [cursor=pointer]:
+          - /url: /users
+        - link "Indicadores" [ref=e9]:
+          - /url: "#"
+  - generic [ref=e10]:
+    - complementary [ref=e11]:
+      - paragraph [ref=e13]: Menu Principal
+    - main [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e16]:
+          - generic [ref=e17]:
+            - generic [ref=e18]: Novidade
+            - generic [ref=e20]: Módulo de Metas em breve →
+          - heading "Gestão Empresarial Simples e Poderosa" [level=1] [ref=e21]
+          - paragraph [ref=e22]: Centralize dashboards, usuários e indicadores em uma única plataforma escalável. Projetado para empresas que buscam eficiência.
+          - generic [ref=e23]:
+            - generic [ref=e24]:
+              - textbox "Digite seu e-mail corporativo" [active] [ref=e25]: validacao@playwright.com
+              - button "Começar" [ref=e26]
+            - generic [ref=e27]:
+              - text: Já tem uma conta?
+              - link "Fazer Login" [ref=e28] [cursor=pointer]:
+                - /url: /login
+        - generic [ref=e30]:
+          - generic [ref=e31]:
+            - heading "Tudo que sua empresa precisa" [level=2] [ref=e32]
+            - paragraph [ref=e33]: Ferramentas integradas para impulsionar a produtividade da sua equipe.
+          - generic [ref=e34]:
+            - generic [ref=e35]:
+              - generic [ref=e36]: 📊
+              - heading "Power BI Integrado" [level=3] [ref=e37]
+              - paragraph [ref=e38]: Visualize seus dashboards estratégicos DIRETAMENTE na plataforma, sem necessidade de múltiplas senhas.
+            - generic [ref=e39]:
+              - generic [ref=e40]: 🔒
+              - heading "Segurança Enterprise" [level=3] [ref=e41]
+              - paragraph [ref=e42]: Gestão baseada em organizações. Dados isolados e protegidos com RLS (Row Level Security).
+            - generic [ref=e43]:
+              - generic [ref=e44]: 👥
+              - heading "Gestão de Equipes" [level=3] [ref=e45]
+              - paragraph [ref=e46]: Convide usuários, defina papéis e gerencie acessos de forma centralizada e intuitiva.
+        - generic [ref=e48]:
+          - heading "Pronto para transformar sua gestão?" [level=2] [ref=e49]
+          - link "Crie sua conta corporativa em segundos →" [ref=e50] [cursor=pointer]:
+            - /url: /register
+  - generic [ref=e53]:
+    - button "Menu" [ref=e54]:
+      - img [ref=e56]
+      - generic: Menu
+    - button "Inspect" [ref=e60]:
+      - img [ref=e62]
+      - generic: Inspect
+    - button "Audit" [ref=e64]:
+      - generic [ref=e65]:
+        - img [ref=e66]
+        - img [ref=e69]
+      - generic: Audit
+    - button "Settings" [ref=e72]:
+      - img [ref=e74]
+      - generic: Settings
+```
