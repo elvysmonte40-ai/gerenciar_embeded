@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
+import UserForm from './UserForm';
 
 interface UserProfile {
     id: string;
@@ -12,6 +13,7 @@ interface UserProfile {
 
 export default function UserList() {
     const [users, setUsers] = useState<UserProfile[]>([]);
+    const [isFormOpen, setIsFormOpen] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
@@ -107,7 +109,7 @@ export default function UserList() {
             <div className="flex justify-between items-center">
                 <h2 className="text-lg font-semibold text-text-primary">Colaboradores</h2>
                 <button
-                    onClick={() => alert("Criar usuário - Redirecionar para form")}
+                    onClick={() => setIsFormOpen(true)}
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-brand hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand transition-colors"
                 >
                     <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -116,6 +118,15 @@ export default function UserList() {
                     Adicionar Usuário
                 </button>
             </div>
+
+            <UserForm
+                isOpen={isFormOpen}
+                onClose={() => setIsFormOpen(false)}
+                onSuccess={() => {
+                    fetchUsers();
+                    setIsFormOpen(false);
+                }}
+            />
 
             {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
