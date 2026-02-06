@@ -1,0 +1,21 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import AdminSidebar from "../../../components/AdminSidebar.astro";
+import RoleList from "../../../modules/admin/components/RoleList";
+---
+
+<AppLayout title="Gerenciamento de Perfis">
+    <AdminSidebar slot="sidebar" activeItem="perfis" />
+
+    <div class="px-4 py-6 sm:px-0">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Perfis de Acesso</h1>
+            <p class="mt-2 text-sm text-gray-600">
+                Gerencie os perfis de acesso, permissões de dashboards e
+                configurações de segurança.
+            </p>
+        </div>
+
+        <RoleList client:load />
+    </div>
+</AppLayout>

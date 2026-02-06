@@ -6,6 +6,8 @@ interface Props {
   disableNav?: boolean;
   showAuthButtons?: boolean;
   fullWidth?: boolean;
+  authOnlyNav?: boolean;
+  hideSidebar?: boolean;
 }
 
 const {
@@ -13,6 +15,8 @@ const {
   disableNav = false,
   showAuthButtons = false,
   fullWidth = false,
+  authOnlyNav = false,
+  hideSidebar = false,
 } = Astro.props;
 ---
 
@@ -44,22 +48,29 @@ const {
         <!-- Module Navigation -->
         {
           !disableNav && (
-            <nav class="hidden md:flex gap-6">
+            <nav
+              id="module-nav"
+              class="hidden md:flex gap-6"
+              data-auth-only={authOnlyNav}
+              style={authOnlyNav ? "display: none;" : ""}
+            >
               <a
                 href="/dashboard"
                 class="text-sm font-medium text-text-primary hover:text-brand border-b-2 border-transparent hover:border-brand py-4 transition-colors"
+                title="Visão Geral"
               >
                 Dashboards
               </a>
               <a
                 href="/users"
                 class="text-sm font-medium text-text-secondary hover:text-brand border-b-2 border-transparent hover:border-brand py-4 transition-colors"
+                title="Gestão de Acessos"
               >
                 Usuários
               </a>
               <a
                 href="#"
-                class="text-sm font-medium text-text-secondary opacity-50 cursor-not-allowed"
+                class="text-sm font-medium text-text-secondary opacity-50 cursor-not-allowed border-b-2 border-transparent py-4"
                 title="Em breve"
               >
                 Indicadores
@@ -160,7 +171,7 @@ const {
     <div class="flex flex-1 overflow-hidden">
       <!-- 2. Context Sidebar -->
       {
-        !disableNav && (
+        !disableNav && !hideSidebar && (
           <aside class="w-64 bg-gray-50/50 border-r border-gray-200 flex flex-col shrink-0">
             <div class="p-4 h-full flex flex-col">
               <slot name="sidebar">
@@ -196,16 +207,27 @@ const {
           const guestButtons = document.getElementById("guest-buttons");
           const orgNameEl = document.getElementById("org-name");
           const avatarEl = document.getElementById("user-avatar");
+          const moduleNav = document.getElementById("module-nav");
 
           if (!session?.user) {
             // User not logged in
             if (userInfo) userInfo.style.display = "none";
             if (guestButtons) guestButtons.style.display = "flex";
+
+            // Handle Module Nav visibility for guests
+            if (moduleNav && moduleNav.dataset.authOnly === "true") {
+              moduleNav.style.display = "none";
+            }
             return;
           }
 
           // User logged in
           if (guestButtons) guestButtons.style.display = "none";
+
+          // Show Module Nav if it exists
+          if (moduleNav) {
+            moduleNav.style.display = "";
+          }
 
           const { data: profile } = await supabase
             .from("profiles")
@@ -288,8 +310,15 @@ const {
         if (event === "SIGNED_OUT") {
           const userInfo = document.getElementById("user-info");
           const guestButtons = document.getElementById("guest-buttons");
+          const moduleNav = document.getElementById("module-nav");
+
           if (userInfo) userInfo.style.display = "none";
           if (guestButtons) guestButtons.style.display = "flex";
+
+          if (moduleNav && moduleNav.dataset.authOnly === "true") {
+            moduleNav.style.display = "none";
+          }
+
           // Redirect to login if on protected page (optional, but handled by page logic usually)
           // window.location.href = "/login";
         } else if (event === "SIGNED_IN") {

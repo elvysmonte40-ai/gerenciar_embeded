@@ -1,0 +1,23 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import AdminSidebar from "../../../components/AdminSidebar.astro";
+import MenuList from "../../../modules/admin/components/MenuList";
+
+// Server-side check could be added here similar to settings page
+---
+
+<AppLayout title="Gerenciar Menus">
+    <AdminSidebar slot="sidebar" />
+
+    <div class="px-4 py-6 sm:px-0">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Gerenciar Menus</h1>
+            <p class="mt-2 text-sm text-gray-600">
+                Configure a estrutura de menus e navegação da sua organização.
+            </p>
+        </div>
+
+        <!-- Menu List Component -->
+        <MenuList client:load />
+    </div>
+</AppLayout>
