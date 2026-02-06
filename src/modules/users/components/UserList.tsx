@@ -14,6 +14,7 @@ interface UserProfile {
 export default function UserList() {
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
@@ -109,7 +110,10 @@ export default function UserList() {
             <div className="flex justify-between items-center">
                 <h2 className="text-lg font-semibold text-text-primary">Colaboradores</h2>
                 <button
-                    onClick={() => setIsFormOpen(true)}
+                    onClick={() => {
+                        setEditingUser(null);
+                        setIsFormOpen(true);
+                    }}
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-brand hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand transition-colors"
                 >
                     <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -126,6 +130,7 @@ export default function UserList() {
                     fetchUsers();
                     setIsFormOpen(false);
                 }}
+                userToEdit={editingUser}
             />
 
             {error && (
@@ -193,7 +198,14 @@ export default function UserList() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button className="text-brand hover:text-brand-dark" title="Editar">
+                                            <button
+                                                className="text-brand hover:text-brand-dark"
+                                                title="Editar"
+                                                onClick={() => {
+                                                    setEditingUser(user);
+                                                    setIsFormOpen(true);
+                                                }}
+                                            >
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                             </button>
                                             <button onClick={() => handleToggleStatus(user.id, user.status)} className="text-red-600 hover:text-red-900" title={user.status === 'active' ? "Inativar" : "Ativar"}>
