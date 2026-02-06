@@ -9,6 +9,13 @@ interface UserProfile {
     status: string; // 'active', 'inactive', 'pending', etc.
     created_at: string;
     organization_id: string;
+    cpf?: string;
+    birth_date?: string;
+    job_title?: string;
+    department?: string;
+    manager_id?: string;
+    employee_id?: number;
+    gender?: string;
 }
 
 export default function UserList() {
@@ -54,7 +61,7 @@ export default function UserList() {
 
             const { data, error, count } = await supabase
                 .from('profiles')
-                .select('id, full_name, role, status, created_at, organization_id', { count: 'exact' })
+                .select('id, full_name, role, status, created_at, organization_id, cpf, birth_date, job_title, department, manager_id, employee_id, gender', { count: 'exact' })
                 .eq('organization_id', orgId)
                 .range(from, to)
                 .order('created_at', { ascending: false });

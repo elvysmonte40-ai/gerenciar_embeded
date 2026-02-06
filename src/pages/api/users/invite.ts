@@ -20,7 +20,7 @@ export const POST: APIRoute = async ({ request }) => {
 
         // Parse Body
         const body = await request.json();
-        const { fullName, email, role, organization_id } = body;
+        const { fullName, email, role, organization_id, cpf, birthDate, jobTitle, department, managerId, gender } = body;
 
         if (!email || !organization_id) {
             return new Response(JSON.stringify({ error: "Email and Organization ID are required" }), { status: 400 });
@@ -41,6 +41,12 @@ export const POST: APIRoute = async ({ request }) => {
                 organization_id: organization_id,
                 full_name: fullName,
                 role: role || 'user',
+                cpf,
+                birth_date: birthDate,
+                job_title: jobTitle,
+                department,
+                manager_id: managerId,
+                gender,
             }
         });
 

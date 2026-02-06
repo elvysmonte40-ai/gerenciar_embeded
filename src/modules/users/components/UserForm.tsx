@@ -9,6 +9,13 @@ interface UserProfile {
     status: string;
     created_at: string;
     organization_id: string;
+    cpf?: string;
+    birth_date?: string;
+    job_title?: string;
+    department?: string;
+    manager_id?: string;
+    employee_id?: number;
+    gender?: string;
 }
 
 interface UserFormProps {
@@ -25,17 +32,63 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [role, setRole] = useState('user');
+    const [cpf, setCpf] = useState('');
+    const [birthDate, setBirthDate] = useState('');
+    const [jobTitle, setJobTitle] = useState('');
+    const [department, setDepartment] = useState('');
+    const [managerId, setManagerId] = useState('');
+    const [gender, setGender] = useState('');
+
+    // Additional state for managers list
+    const [managers, setManagers] = useState<UserProfile[]>([]);
+
+    useEffect(() => {
+        // Fetch potential managers (all users in org)
+        const fetchManagers = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const orgId = session.user.user_metadata.organization_id;
+            if (!orgId) return;
+
+            const { data } = await supabase
+                .from('profiles')
+                .select('id, full_name')
+                .eq('organization_id', orgId)
+                .order('full_name');
+
+            if (data) {
+                setManagers(data as any);
+            }
+        };
+
+        if (isOpen) {
+            fetchManagers();
+        }
+    }, [isOpen]);
 
     useEffect(() => {
         if (isOpen) {
             if (userToEdit) {
                 setFullName(userToEdit.full_name || '');
                 setRole(userToEdit.role || 'user');
-                setEmail(''); // Email is not editable and not available in the list view
+                setEmail(''); // Email is not editable
+                setCpf(userToEdit.cpf || '');
+                setBirthDate(userToEdit.birth_date || '');
+                setJobTitle(userToEdit.job_title || '');
+                setDepartment(userToEdit.department || '');
+                setManagerId(userToEdit.manager_id || '');
+                setGender(userToEdit.gender || '');
             } else {
                 setFullName('');
                 setEmail('');
                 setRole('user');
+                setCpf('');
+                setBirthDate('');
+                setJobTitle('');
+                setDepartment('');
+                setManagerId('');
+                setGender('');
             }
             setError(null);
         }
@@ -55,7 +108,13 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                     .from('profiles')
                     .update({
                         full_name: fullName,
-                        role: role
+                        role: role,
+                        cpf,
+                        birth_date: birthDate || null,
+                        job_title: jobTitle,
+                        department,
+                        manager_id: managerId || null,
+                        gender
                     })
                     .eq('id', userToEdit.id);
 
@@ -80,7 +139,13 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                         fullName,
                         email,
                         role,
-                        organization_id: session.user.user_metadata.organization_id
+                        organization_id: session.user.user_metadata.organization_id,
+                        cpf,
+                        birthDate,
+                        jobTitle,
+                        department,
+                        managerId: managerId || null,
+                        gender
                     }),
                 });
 
@@ -115,44 +180,144 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                                         {userToEdit ? 'Editar Usuário' : 'Adicionar Usuário'}
                                     </h3>
                                     <div className="mt-4">
-                                        <form id="user-form" onSubmit={handleSubmit} className="space-y-4">
-                                            <div>
-                                                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">Nome Completo</label>
-                                                <input
-                                                    type="text"
-                                                    id="fullName"
-                                                    required
-                                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm"
-                                                    value={fullName}
-                                                    onChange={e => setFullName(e.target.value)}
-                                                />
-                                            </div>
+                                        <form id="user-form" onSubmit={handleSubmit} className="space-y-6">
 
-                                            {!userToEdit && (
+                                            {/* Dados Pessoais */}
+                                            <div className="space-y-4">
+                                                <h4 className="text-sm font-medium text-gray-900 border-b pb-1">Dados Pessoais</h4>
+
                                                 <div>
-                                                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                                                    <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">Nome Completo</label>
                                                     <input
-                                                        type="email"
-                                                        id="email"
+                                                        type="text"
+                                                        id="fullName"
                                                         required
                                                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm"
-                                                        value={email}
-                                                        onChange={e => setEmail(e.target.value)}
+                                                        value={fullName}
+                                                        onChange={e => setFullName(e.target.value)}
                                                     />
                                                 </div>
-                                            )}
 
-                                            <div>
-                                                <label htmlFor="role" className="block text-sm font-medium text-gray-700">Função</label>
-                                                <select
-                                                    id="role"
-                                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm bg-white"
-                                                    value={role}
-                                                    onChange={e => setRole(e.target.value)}
-                                                >
-                                                    <option value="user">Colaborador</option>
-                                                    <option value="admin">Administrador</option>
-                                                </select>
+                                                {!userToEdit && (
+                                                    <div>
+                                                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                                                        <input
+                                                            type="email"
+                                                            id="email"
+                                                            required
+                                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm"
+                                                            value={email}
+                                                            onChange={e => setEmail(e.target.value)}
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label htmlFor="cpf" className="block text-sm font-medium text-gray-700">CPF</label>
+                                                        <input
+                                                            type="text"
+                                                            id="cpf"
+                                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm"
+                                                            value={cpf}
+                                                            onChange={e => setCpf(e.target.value)}
+                                                            placeholder="000.000.000-00"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700">Data de Nascimento</label>
+                                                        <input
+                                                            type="date"
+                                                            id="birthDate"
+                                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm"
+                                                            value={birthDate}
+                                                            onChange={e => setBirthDate(e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label htmlFor="gender" className="block text-sm font-medium text-gray-700">Gênero</label>
+                                                    <select
+                                                        id="gender"
+                                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm bg-white"
+                                                        value={gender}
+                                                        onChange={e => setGender(e.target.value)}
+                                                    >
+                                                        <option value="">Selecione...</option>
+                                                        <option value="Masculino">Masculino</option>
+                                                        <option value="Feminino">Feminino</option>
+                                                        <option value="Outro">Outro</option>
+                                                        <option value="Prefiro não dizer">Prefiro não dizer</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            {/* Dados Profissionais */}
+                                            <div className="space-y-4">
+                                                <h4 className="text-sm font-medium text-gray-900 border-b pb-1">Dados Profissionais</h4>
+
+                                                {userToEdit && userToEdit.employee_id && (
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700">Matrícula</label>
+                                                        <div className="mt-1 py-2 px-3 bg-gray-50 border border-gray-300 rounded-md text-sm text-gray-500">
+                                                            {userToEdit.employee_id}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label htmlFor="department" className="block text-sm font-medium text-gray-700">Setor/Departamento</label>
+                                                        <input
+                                                            type="text"
+                                                            id="department"
+                                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm"
+                                                            value={department}
+                                                            onChange={e => setDepartment(e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label htmlFor="jobTitle" className="block text-sm font-medium text-gray-700">Cargo</label>
+                                                        <input
+                                                            type="text"
+                                                            id="jobTitle"
+                                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm"
+                                                            value={jobTitle}
+                                                            onChange={e => setJobTitle(e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label htmlFor="manager" className="block text-sm font-medium text-gray-700">Líder (Gestor)</label>
+                                                    <select
+                                                        id="manager"
+                                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm bg-white"
+                                                        value={managerId}
+                                                        onChange={e => setManagerId(e.target.value)}
+                                                    >
+                                                        <option value="">Selecione...</option>
+                                                        {managers.map(manager => (
+                                                            <option key={manager.id} value={manager.id}>
+                                                                {manager.full_name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <label htmlFor="role" className="block text-sm font-medium text-gray-700">Função no Sistema</label>
+                                                    <select
+                                                        id="role"
+                                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm bg-white"
+                                                        value={role}
+                                                        onChange={e => setRole(e.target.value)}
+                                                    >
+                                                        <option value="user">Colaborador</option>
+                                                        <option value="admin">Administrador</option>
+                                                    </select>
+                                                </div>
                                             </div>
 
                                             {error && (
