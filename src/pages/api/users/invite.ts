@@ -20,7 +20,7 @@ export const POST: APIRoute = async ({ request }) => {
 
         // Parse Body
         const body = await request.json();
-        const { fullName, email, role, organization_id, cpf, birthDate, jobTitle, department, managerId, gender } = body;
+        const { fullName, email, role, organization_id, cpf, birthDate, jobTitle, department, managerId, gender, password } = body;
 
         if (!email || !organization_id) {
             return new Response(JSON.stringify({ error: "Email and Organization ID are required" }), { status: 400 });
@@ -29,33 +29,53 @@ export const POST: APIRoute = async ({ request }) => {
         // Check if requester belongs to the same organization
         const requesterOrgId = user.user_metadata.organization_id;
         if (requesterOrgId !== organization_id) {
-            // Allow super admin bypass if needed, but for now enforce org match
-            // Unless the requester is a super_admin?
-            // For now, strict check:
             return new Response(JSON.stringify({ error: "Unauthorized organization access" }), { status: 403 });
         }
 
-        // Invite User
-        const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-            data: {
-                organization_id: organization_id,
-                full_name: fullName,
-                role: role || 'user',
-                cpf,
-                birth_date: birthDate,
-                job_title: jobTitle,
-                department,
-                manager_id: managerId,
-                gender,
-            }
-        });
+        let resultData;
 
-        if (inviteError) {
-            console.error("Error inviting user:", inviteError);
-            return new Response(JSON.stringify({ error: inviteError.message }), { status: 400 });
+        if (password) {
+            // Create User with Password (Auto-Confirm)
+            const { data, error } = await supabaseAdmin.auth.admin.createUser({
+                email,
+                password,
+                email_confirm: true,
+                user_metadata: {
+                    organization_id,
+                    full_name: fullName,
+                    role: role || 'user',
+                    cpf,
+                    birth_date: birthDate,
+                    job_title: jobTitle,
+                    department,
+                    manager_id: managerId,
+                    gender
+                }
+            });
+
+            if (error) throw error;
+            resultData = data;
+        } else {
+            // Invite User (Email link)
+            const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+                data: {
+                    organization_id,
+                    full_name: fullName,
+                    role: role || 'user',
+                    cpf,
+                    birth_date: birthDate,
+                    job_title: jobTitle,
+                    department,
+                    manager_id: managerId,
+                    gender,
+                }
+            });
+
+            if (error) throw error;
+            resultData = data;
         }
 
-        return new Response(JSON.stringify({ message: "User invited successfully", user: inviteData.user }), { status: 200 });
+        return new Response(JSON.stringify({ message: password ? "User created successfully" : "User invited successfully", user: resultData.user }), { status: 200 });
 
     } catch (err: any) {
         console.error("Server error:", err);

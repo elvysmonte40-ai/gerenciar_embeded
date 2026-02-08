@@ -1,0 +1,28 @@
+---
+import AppLayout from "../../layouts/AppLayout.astro";
+import UserSidebar from "../../modules/users/components/UserSidebar.astro";
+import Organogram from "../../modules/users/components/Organogram";
+---
+
+<AppLayout title="Organograma - Gerenciar">
+    <UserSidebar slot="sidebar" currentPath={Astro.url.pathname} />
+
+    <div class="h-full flex flex-col">
+        <header class="flex items-center justify-between mb-6 shrink-0">
+            <div>
+                <h1 class="text-2xl font-semibold text-gray-800">
+                    Organograma
+                </h1>
+                <p class="text-sm text-gray-500 mt-1">
+                    Visualização Hierárquica da Organização
+                </p>
+            </div>
+        </header>
+
+        <div
+            class="flex-1 overflow-hidden bg-gray-50 rounded-xl border border-gray-200 relative"
+        >
+            <Organogram client:only="react" />
+        </div>
+    </div>
+</AppLayout>

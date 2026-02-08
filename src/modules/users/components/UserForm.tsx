@@ -11,11 +11,35 @@ interface UserProfile {
     organization_id: string;
     cpf?: string;
     birth_date?: string;
-    job_title?: string;
-    department?: string;
+    job_title_id?: string;
+    department_id?: string;
+    sector_id?: string;
     manager_id?: string;
     employee_id?: number;
     gender?: string;
+    // Computed fields for display
+    job_titles?: { title: string };
+    departments?: { name: string };
+    sectors?: { name: string };
+    email?: string;
+}
+
+interface Department {
+    id: string;
+    name: string;
+}
+
+interface Sector {
+    id: string;
+    name: string;
+    department_id: string;
+}
+
+interface JobTitle {
+    id: string;
+    title: string;
+    department_id?: string;
+    sector_id?: string;
 }
 
 interface UserFormProps {
@@ -34,36 +58,82 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
     const [role, setRole] = useState('user');
     const [cpf, setCpf] = useState('');
     const [birthDate, setBirthDate] = useState('');
-    const [jobTitle, setJobTitle] = useState('');
-    const [department, setDepartment] = useState('');
+    const [jobTitleId, setJobTitleId] = useState('');
+    const [departmentId, setDepartmentId] = useState('');
+    const [sectorId, setSectorId] = useState('');
     const [managerId, setManagerId] = useState('');
     const [gender, setGender] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
 
     // Additional state for managers list
     const [managers, setManagers] = useState<UserProfile[]>([]);
+    const [availableDepartments, setAvailableDepartments] = useState<Department[]>([]);
+    const [availableSectors, setAvailableSectors] = useState<Sector[]>([]);
+    const [availableJobTitles, setAvailableJobTitles] = useState<JobTitle[]>([]);
 
     useEffect(() => {
-        // Fetch potential managers (all users in org)
-        const fetchManagers = async () => {
+        // Fetch potential managers (all users in org) and metadata
+        const fetchData = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
             const orgId = session.user.user_metadata.organization_id;
             if (!orgId) return;
 
-            const { data } = await supabase
+            // Fetch Managers
+            const { data: managersData } = await supabase
                 .from('profiles')
                 .select('id, full_name')
                 .eq('organization_id', orgId)
                 .order('full_name');
 
-            if (data) {
-                setManagers(data as any);
+            if (managersData) {
+                setManagers(managersData as any);
+            }
+
+            // Fetch Departments
+            const { data: deptsData } = await supabase
+                .from('departments')
+                .select('id, name')
+                .eq('organization_id', orgId)
+                .eq('is_active', true)
+                .order('name');
+
+            if (deptsData) {
+                setAvailableDepartments(deptsData);
+            }
+
+            // Fetch Job Titles
+            const { data: jobsData, error: jobsError } = await supabase
+                .from('job_titles')
+                .select('id, title, sector_id, department_id')
+                .eq('organization_id', orgId)
+                .eq('is_active', true)
+                .order('title');
+
+            if (jobsError) console.error('Error fetching jobs:', jobsError);
+
+            if (jobsData) {
+                setAvailableJobTitles(jobsData);
+            }
+
+            // Fetch Sectors
+            const { data: sectorsData } = await supabase
+                .from('sectors')
+                .select('id, name, department_id')
+                .eq('organization_id', orgId)
+                .eq('is_active', true)
+                .order('name');
+
+            if (sectorsData) {
+                setAvailableSectors(sectorsData);
             }
         };
 
         if (isOpen) {
-            fetchManagers();
+            fetchData();
         }
     }, [isOpen]);
 
@@ -72,11 +142,32 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
             if (userToEdit) {
                 setFullName(userToEdit.full_name || '');
                 setRole(userToEdit.role || 'user');
-                setEmail(''); // Email is not editable
+                setEmail(''); // Reset email, will fetch below
+                // Fetch latest email from API
+                const fetchEmail = async () => {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) return;
+
+                    try {
+                        const res = await fetch(`/api/users/${userToEdit.id}`, {
+                            headers: { Authorization: `Bearer ${session.access_token}` }
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.email) setEmail(data.email);
+                        }
+                    } catch (e) {
+                        console.error("Error fetching email", e);
+                    }
+                };
+                fetchEmail();
+
                 setCpf(userToEdit.cpf || '');
                 setBirthDate(userToEdit.birth_date || '');
-                setJobTitle(userToEdit.job_title || '');
-                setDepartment(userToEdit.department || '');
+
+                setJobTitleId(userToEdit.job_title_id || '');
+                setDepartmentId(userToEdit.department_id || '');
+                setSectorId(userToEdit.sector_id || '');
                 setManagerId(userToEdit.manager_id || '');
                 setGender(userToEdit.gender || '');
             } else {
@@ -85,10 +176,15 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                 setRole('user');
                 setCpf('');
                 setBirthDate('');
-                setJobTitle('');
-                setDepartment('');
+
+                setJobTitleId('');
+                setDepartmentId('');
+                setSectorId('');
                 setManagerId('');
                 setGender('');
+                setPassword('');
+                setConfirmPassword('');
+                setShowPassword(false);
             }
             setError(null);
         }
@@ -101,9 +197,36 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
         setLoading(true);
         setError(null);
 
+        if (password && password !== confirmPassword) {
+            setError("As senhas não coincidem.");
+            setLoading(false);
+            return;
+        }
+
         try {
             if (userToEdit) {
-                // Edit Mode - Direct Update
+                // Check if email changed
+                if (email !== userToEdit.email) {
+                    const response = await fetch('/api/users/update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+                        },
+                        body: JSON.stringify({
+                            id: userToEdit.id,
+                            email,
+                            password: password || undefined // Send password only if provided
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const data = await response.json();
+                        throw new Error(data.error || 'Erro ao atualizar email.');
+                    }
+                }
+
+                // Update profile data via direct DB call (faster/simpler than API if only profile changed)
                 const { error: updateError } = await supabase
                     .from('profiles')
                     .update({
@@ -111,14 +234,19 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                         role: role,
                         cpf,
                         birth_date: birthDate || null,
-                        job_title: jobTitle,
-                        department,
+                        job_title_id: jobTitleId || null,
+                        department_id: departmentId || null,
+                        sector_id: sectorId || null,
                         manager_id: managerId || null,
                         gender
+                        // email removed from here as we don't have the column in profiles yet
                     })
                     .eq('id', userToEdit.id);
 
-                if (updateError) throw updateError;
+                if (updateError) {
+                    console.error('Update profile error:', updateError);
+                    throw updateError;
+                }
 
             } else {
                 // Create Mode - Invite API
@@ -142,10 +270,13 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                         organization_id: session.user.user_metadata.organization_id,
                         cpf,
                         birthDate,
-                        jobTitle,
-                        department,
+
+                        jobTitleId,
+                        departmentId,
+                        sectorId,
                         managerId: managerId || null,
-                        gender
+                        gender,
+                        password: password || undefined // Send password if provided
                     }),
                 });
 
@@ -164,6 +295,21 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 11) value = value.slice(0, 11);
+
+        if (value.length > 9) {
+            value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+        } else if (value.length > 6) {
+            value = value.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+        } else if (value.length > 3) {
+            value = value.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+        }
+
+        setCpf(value);
     };
 
     return createPortal(
@@ -198,18 +344,85 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                                                     />
                                                 </div>
 
-                                                {!userToEdit && (
+                                                <div>
+                                                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                                                    <input
+                                                        type="email"
+                                                        id="email"
+                                                        required
+                                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm"
+                                                        value={email}
+                                                        onChange={e => setEmail(e.target.value)}
+                                                    />
+                                                </div>
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
                                                     <div>
-                                                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-                                                        <input
-                                                            type="email"
-                                                            id="email"
-                                                            required
-                                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm"
-                                                            value={email}
-                                                            onChange={e => setEmail(e.target.value)}
-                                                        />
+                                                        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                                                            {userToEdit ? 'Nova Senha (Opcional)' : 'Senha (Opcional)'}
+                                                        </label>
+                                                        <div className="relative">
+                                                            <input
+                                                                type={showPassword ? "text" : "password"}
+                                                                id="password"
+                                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm pr-10"
+                                                                value={password}
+                                                                onChange={e => setPassword(e.target.value)}
+                                                                placeholder={userToEdit ? "Mantenha em branco para não alterar" : "Deixe em branco para enviar convite"}
+                                                                minLength={6}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                                                onClick={() => setShowPassword(!showPassword)}
+                                                            >
+                                                                {showPassword ? (
+                                                                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                                                    </svg>
+                                                                ) : (
+                                                                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                    </svg>
+                                                                )}
+                                                            </button>
+                                                        </div>
                                                     </div>
+                                                    <div>
+                                                        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirmar Senha</label>
+                                                        <div className="relative">
+                                                            <input
+                                                                type={showPassword ? "text" : "password"}
+                                                                id="confirmPassword"
+                                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm pr-10"
+                                                                value={confirmPassword}
+                                                                onChange={e => setConfirmPassword(e.target.value)}
+                                                                placeholder="Confirme a senha"
+                                                                minLength={6}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                                                onClick={() => setShowPassword(!showPassword)}
+                                                            >
+                                                                {showPassword ? (
+                                                                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                                                    </svg>
+                                                                ) : (
+                                                                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                    </svg>
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {password !== confirmPassword && confirmPassword.length > 0 && (
+                                                    <p className="text-red-500 text-xs">As senhas não coincidem.</p>
                                                 )}
 
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -220,8 +433,9 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                                                             id="cpf"
                                                             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm"
                                                             value={cpf}
-                                                            onChange={e => setCpf(e.target.value)}
+                                                            onChange={handleCpfChange}
                                                             placeholder="000.000.000-00"
+                                                            maxLength={14}
                                                         />
                                                     </div>
                                                     <div>
@@ -266,59 +480,107 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                                                     </div>
                                                 )}
 
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                    <div>
-                                                        <label htmlFor="department" className="block text-sm font-medium text-gray-700">Setor/Departamento</label>
-                                                        <input
-                                                            type="text"
-                                                            id="department"
-                                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm"
-                                                            value={department}
-                                                            onChange={e => setDepartment(e.target.value)}
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label htmlFor="jobTitle" className="block text-sm font-medium text-gray-700">Cargo</label>
-                                                        <input
-                                                            type="text"
-                                                            id="jobTitle"
-                                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm"
-                                                            value={jobTitle}
-                                                            onChange={e => setJobTitle(e.target.value)}
-                                                        />
-                                                    </div>
-                                                </div>
-
                                                 <div>
-                                                    <label htmlFor="manager" className="block text-sm font-medium text-gray-700">Líder (Gestor)</label>
+                                                    <label htmlFor="department" className="block text-sm font-medium text-gray-700">Departamento</label>
                                                     <select
-                                                        id="manager"
+                                                        id="department"
                                                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm bg-white"
-                                                        value={managerId}
-                                                        onChange={e => setManagerId(e.target.value)}
+                                                        value={departmentId}
+                                                        onChange={e => {
+                                                            setDepartmentId(e.target.value);
+                                                            setSectorId(''); // Reset sector
+                                                            setJobTitleId(''); // Reset job title
+                                                        }}
                                                     >
                                                         <option value="">Selecione...</option>
-                                                        {managers.map(manager => (
-                                                            <option key={manager.id} value={manager.id}>
-                                                                {manager.full_name}
-                                                            </option>
+                                                        {availableDepartments.map(dept => (
+                                                            <option key={dept.id} value={dept.id}>{dept.name}</option>
                                                         ))}
                                                     </select>
                                                 </div>
 
                                                 <div>
-                                                    <label htmlFor="role" className="block text-sm font-medium text-gray-700">Função no Sistema</label>
+                                                    <label htmlFor="sector" className="block text-sm font-medium text-gray-700">Setor</label>
                                                     <select
-                                                        id="role"
+                                                        id="sector"
                                                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm bg-white"
-                                                        value={role}
-                                                        onChange={e => setRole(e.target.value)}
+                                                        value={sectorId}
+                                                        onChange={e => {
+                                                            setSectorId(e.target.value);
+                                                            setJobTitleId(''); // Reset job title when sector changes
+                                                        }}
+                                                        disabled={!departmentId}
                                                     >
-                                                        <option value="user">Colaborador</option>
-                                                        <option value="admin">Administrador</option>
+                                                        <option value="">Selecione...</option>
+                                                        {availableSectors
+                                                            .filter(sector => !departmentId || sector.department_id === departmentId)
+                                                            .map(sector => (
+                                                                <option key={sector.id} value={sector.id}>{sector.name}</option>
+                                                            ))}
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <label htmlFor="jobTitle" className="block text-sm font-medium text-gray-700">Cargo</label>
+                                                    <select
+                                                        id="jobTitle"
+                                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm bg-white"
+                                                        value={jobTitleId}
+                                                        onChange={e => setJobTitleId(e.target.value)}
+                                                        disabled={!departmentId}
+                                                    >
+                                                        <option value="">Selecione...</option>
+                                                        {availableJobTitles
+                                                            .filter(job => {
+                                                                // If sector is selected, show jobs for that sector
+                                                                if (sectorId) {
+                                                                    return job.sector_id === sectorId;
+                                                                }
+                                                                // If no sector selected but department is, show jobs for that department (without specific sector)
+                                                                // OR jobs that belong to that department (if your business logic allows selecting any job in dept)
+                                                                // Based on user request "cargo que não tenha setor associado mas seja do departamento selecionado"
+                                                                if (departmentId) {
+                                                                    return job.department_id === departmentId && (!job.sector_id);
+                                                                }
+                                                                return false;
+                                                            })
+                                                            .map(job => (
+                                                                <option key={job.id} value={job.id}>{job.title}</option>
+                                                            ))}
                                                     </select>
                                                 </div>
                                             </div>
+
+                                            <div>
+                                                <label htmlFor="manager" className="block text-sm font-medium text-gray-700">Líder (Gestor)</label>
+                                                <select
+                                                    id="manager"
+                                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm bg-white"
+                                                    value={managerId}
+                                                    onChange={e => setManagerId(e.target.value)}
+                                                >
+                                                    <option value="">Selecione...</option>
+                                                    {managers.map(manager => (
+                                                        <option key={manager.id} value={manager.id}>
+                                                            {manager.full_name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label htmlFor="role" className="block text-sm font-medium text-gray-700">Função no Sistema</label>
+                                                <select
+                                                    id="role"
+                                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm bg-white"
+                                                    value={role}
+                                                    onChange={e => setRole(e.target.value)}
+                                                >
+                                                    <option value="user">Colaborador</option>
+                                                    <option value="admin">Administrador</option>
+                                                </select>
+                                            </div>
+
 
                                             {error && (
                                                 <div className="text-red-600 text-sm bg-red-50 p-2 rounded">{error}</div>
@@ -347,8 +609,8 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>,
+            </div >
+        </div >,
         document.body
     );
 }

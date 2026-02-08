@@ -16,6 +16,12 @@ interface UserProfile {
     manager_id?: string;
     employee_id?: number;
     gender?: string;
+    job_title_id?: string;
+    department_id?: string;
+    sector_id?: string;
+    job_titles?: { title: string };
+    departments?: { name: string };
+    sectors?: { name: string };
 }
 
 export default function UserList() {
@@ -61,14 +67,29 @@ export default function UserList() {
 
             const { data, error, count } = await supabase
                 .from('profiles')
-                .select('id, full_name, role, status, created_at, organization_id, cpf, birth_date, job_title, department, manager_id, employee_id, gender', { count: 'exact' })
+                .select(`
+                    id, full_name, role, status, created_at, organization_id, cpf, birth_date, 
+                    manager_id, employee_id, gender,
+                    job_title_id, department_id, sector_id,
+                    job_titles:job_title_id(title),
+                    departments:department_id(name),
+                    sectors:sector_id(name)
+                `, { count: 'exact' })
                 .eq('organization_id', orgId)
                 .range(from, to)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
 
-            setUsers(data || []);
+            // Map data to handle Supabase join returning arrays
+            const formattedData = (data || []).map((user: any) => ({
+                ...user,
+                job_titles: Array.isArray(user.job_titles) ? user.job_titles[0] : user.job_titles,
+                departments: Array.isArray(user.departments) ? user.departments[0] : user.departments,
+                sectors: Array.isArray(user.sectors) ? user.sectors[0] : user.sectors,
+            }));
+
+            setUsers(formattedData);
             if (count) {
                 setTotalPages(Math.ceil(count / ITEMS_PER_PAGE));
             }
@@ -161,6 +182,12 @@ export default function UserList() {
                                     Status
                                 </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Matrícula
+                                </th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Cargo/Setor
+                                </th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Cadastro
                                 </th>
                                 <th scope="col" className="relative px-6 py-3">
@@ -180,7 +207,6 @@ export default function UserList() {
                                             </div>
                                             <div className="ml-4">
                                                 <div className="text-sm font-medium text-text-primary">{user.full_name || 'Sem nome'}</div>
-                                                {/* Email removed as it requires join that is not available */}
                                             </div>
                                         </div>
                                     </td>
@@ -199,6 +225,13 @@ export default function UserList() {
                                                 Inativo
                                             </span>
                                         )}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {user.employee_id || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm text-gray-900">{user.job_titles?.title || '-'}</div>
+                                        <div className="text-xs text-gray-500">{user.departments?.name || '-'}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {new Date(user.created_at).toLocaleDateString('pt-BR')}
@@ -228,7 +261,7 @@ export default function UserList() {
                             ))}
                             {users.length === 0 && !loading && (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                                         Nenhum usuário encontrado nesta organização.
                                     </td>
                                 </tr>
