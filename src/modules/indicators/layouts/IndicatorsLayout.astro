@@ -1,0 +1,15 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import IndicatorsSidebar from "../components/IndicatorsSidebar.astro";
+
+interface Props {
+    title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<AppLayout title={title}>
+    <IndicatorsSidebar slot="sidebar" />
+    <slot />
+</AppLayout>
