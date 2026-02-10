@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { IndicatorCard } from '../components/IndicatorCard';
 import { IndicatorForm } from '../components/IndicatorForm';
+import { IndicatorChartModal } from '../components/IndicatorChartModal';
 import { Plus, Search, Filter, RefreshCw } from 'lucide-react';
 import { indicatorsService } from '../services/indicatorsService';
 import { supabase } from '../../../lib/supabase';
@@ -12,6 +12,7 @@ export const IndicatorsList: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [selectedIndicator, setSelectedIndicator] = useState<Indicator | null>(null);
 
     const fetchIndicators = async () => {
         setLoading(true);
@@ -55,7 +56,7 @@ export const IndicatorsList: React.FC = () => {
                     </button>
                     <button
                         onClick={() => setIsFormOpen(true)}
-                        className="bg-brand text-white px-4 py-2.5 rounded-lg hover:bg-brand-dark flex items-center gap-2 font-semibold shadow-sm hover:shadow transition-all text-sm"
+                        className="bg-brand text-white text-sm px-4 py-2.5 rounded-lg hover:bg-brand-dark flex items-center gap-2 font-semibold shadow-sm hover:shadow transition-all"
                     >
                         <Plus size={18} />
                         Novo Indicador
@@ -93,6 +94,7 @@ export const IndicatorsList: React.FC = () => {
                             key={ind.id}
                             indicator={ind}
                             lastEntry={ind.lastEntry}
+                            onClick={() => setSelectedIndicator(ind)}
                         />
                     ))}
                 </div>
@@ -126,6 +128,12 @@ export const IndicatorsList: React.FC = () => {
                 isOpen={isFormOpen}
                 onClose={() => setIsFormOpen(false)}
                 onSuccess={fetchIndicators}
+            />
+
+            <IndicatorChartModal
+                isOpen={!!selectedIndicator}
+                onClose={() => setSelectedIndicator(null)}
+                indicator={selectedIndicator}
             />
         </div>
     );

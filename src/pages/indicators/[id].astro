@@ -9,13 +9,9 @@ const { id } = Astro.params;
 // but sticking to client-side fetching as implemented in React component for now for simplicity and interactivity.
 // We might want to protect this route though.
 
-const {
-    data: { session },
-} = await supabase.auth.getSession();
-
-if (!session) {
-    return Astro.redirect("/login");
-}
+// Session check removed to allow client-side handling or require proper SSR setup.
+// const { data: { session } } = await supabase.auth.getSession();
+// if (!session) return Astro.redirect("/login");
 ---
 
 <IndicatorsLayout title="Detalhes do Indicador">
