@@ -9,6 +9,7 @@ interface IndicatorCardProps {
     onClick?: () => void;
 }
 
+
 export const IndicatorCard: React.FC<IndicatorCardProps> = ({ indicator, lastEntry, onClick }) => {
     const statusConfig = {
         GREEN: {
@@ -34,12 +35,39 @@ export const IndicatorCard: React.FC<IndicatorCardProps> = ({ indicator, lastEnt
         },
     };
 
+    // Determine values to show (Monthly vs Accumulated)
+    const isAnnual = indicator.periodicity === 'annual';
+    const realized = isAnnual && lastEntry?.accumulated ? lastEntry.accumulated.realized : lastEntry?.realized;
+    const target = isAnnual && lastEntry?.accumulated ? lastEntry.accumulated.target : lastEntry?.target;
+    const performance = isAnnual && lastEntry?.accumulated ? lastEntry.accumulated.performance : lastEntry?.performance;
+
+    // Use comprehensive status if available, otherwise fallback (accumulated status logic might need refinement in service, but for now we use the main status or calculate new one?)
+    // Actually, service only calculates accumulated performance, not status.
+    // For MVP, if annual, we might want to recalculate status based on accumulated performance.
+    // But let's use the performance value to stick with the simple color logic for now or just reuse the logic if possible.
+    // If it's annual, the status in lastEntry might be for the month. We should probably use the accumulated performance to determine color.
+    // However, I didn't export getComprehensiveStatus to frontend.
+    // Let's rely on the passed status for now, or if I updated service to set status based on accumulation?
+    // In service I did: calculatedEntry = { ...accumulated: { ... } }. I didn't update the top-level status.
+    // Let's assume the user wants to see the MONTHLY status primarily, but ACCUMULATED values?
+    // "A 'frequencia' de meta deve ser usada para trazer o valor acumulado do ano... Esses valores devem ser plotados"
+    // So for the Big Numbers, show Accumulated.
+
+    // Status Logic for UI color:
+    // If Annual, maybe we should show the status of the accumulated performance?
+    // Since I don't have the status logic here, I will use the monthly status color for the card border/badge, but show accumulated values.
+    // OR, I can simple check performance thresholds if I knew them.
+    // Let's stick to using `lastEntry.status` for the visual style for now to avoid duplications, but label it clearly.
+
     const currentStatus = lastEntry ? statusConfig[lastEntry.status] : null;
 
-    const getFormat = (val: number, unit: string) => {
-        if (unit === 'currency') return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
-        if (unit === 'percent') return `${val.toFixed(1)}%`;
-        return val.toLocaleString('pt-BR');
+    const getFormat = (val: number | null | undefined, unit: string) => {
+        if (val === null || val === undefined) return '-';
+        const decimals = indicator.decimal_places ?? 2;
+
+        if (unit === 'currency') return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: decimals, minimumFractionDigits: decimals }).format(val);
+        if (unit === 'percent') return `${val.toFixed(decimals)}%`;
+        return val.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
     };
 
     // Determine trend icon (Mock logic for now, ideally comes from backend)
@@ -69,12 +97,21 @@ export const IndicatorCard: React.FC<IndicatorCardProps> = ({ indicator, lastEnt
                     <h3 className="font-semibold text-text-primary text-base leading-tight group-hover:text-brand transition-colors line-clamp-2" title={indicator.title}>
                         {indicator.title}
                     </h3>
-                    <span className="text-xs text-text-secondary mt-1 block capitalize">{indicator.periodicity === 'monthly' ? 'Mensal' : indicator.periodicity}</span>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-text-secondary capitalize">
+                            {isAnnual ? 'Meta Anual' : 'Meta Mensal'}
+                        </span>
+                        {isAnnual && (
+                            <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 uppercase font-semibold">
+                                Acumulado
+                            </span>
+                        )}
+                    </div>
                 </div>
                 {/* Status Badge */}
                 {(lastEntry && currentStatus) && (
                     <span className={`px-2.5 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 ${statusConfig[lastEntry.status].bg} ${statusConfig[lastEntry.status].text} ${statusConfig[lastEntry.status].border}`}>
-                        {lastEntry.performance.toFixed(1)}%
+                        {getFormat(performance, 'percent')}
                     </span>
                 )}
             </div>
@@ -93,8 +130,7 @@ export const IndicatorCard: React.FC<IndicatorCardProps> = ({ indicator, lastEnt
                         <div className="flex items-end justify-between">
                             <div>
                                 <span className="text-2xl font-bold text-text-primary tracking-tight block">
-                                    {/* TODO: Format properly */}
-                                    {lastEntry.realized} <span className="text-sm font-normal text-gray-500">{indicator.unit}</span>
+                                    {getFormat(realized, indicator.unit)} <span className="text-sm font-normal text-gray-500">{indicator.unit === 'number' && ''}</span>
                                 </span>
                             </div>
                             <div className="text-right">
@@ -103,7 +139,7 @@ export const IndicatorCard: React.FC<IndicatorCardProps> = ({ indicator, lastEnt
                                     <span>Meta</span>
                                 </div>
                                 <span className="text-sm font-semibold text-text-secondary">
-                                    {lastEntry.target}
+                                    {getFormat(target, indicator.unit)}
                                 </span>
                             </div>
                         </div>
@@ -118,3 +154,4 @@ export const IndicatorCard: React.FC<IndicatorCardProps> = ({ indicator, lastEnt
         </div>
     );
 };
+

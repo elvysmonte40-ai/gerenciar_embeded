@@ -1,6 +1,6 @@
 export type IndicatorDirection = 'HIGHER_BETTER' | 'LOWER_BETTER';
 export type IndicatorUnit = 'currency' | 'percent' | 'number';
-export type IndicatorPeriodicity = 'monthly';
+export type IndicatorPeriodicity = 'monthly' | 'annual';
 
 export interface Indicator {
     id: string;
@@ -10,6 +10,10 @@ export interface Indicator {
     direction: IndicatorDirection;
     unit: IndicatorUnit;
     periodicity: IndicatorPeriodicity;
+    sort_order: number;
+    decimal_places: number;
+    description?: string;
+    calculation_type: string;
     created_at: string;
     updated_at: string;
 }
@@ -22,6 +26,14 @@ export interface IndicatorEntry {
     target: number | null;
     budget: number | null;
     realized: number | null;
+    realized_numerator?: number | null;
+    realized_denominator?: number | null;
+    target_numerator?: number | null;
+    target_denominator?: number | null;
+    budget_numerator?: number | null;
+    budget_denominator?: number | null;
+    numerator?: number | null; // Deprecated, remove later
+    denominator?: number | null; // Deprecated, remove later
     created_at: string;
     updated_at: string;
 }
@@ -33,4 +45,9 @@ export interface CalculatedEntry extends IndicatorEntry {
     deviation: number;   // Absolute difference
     status: IndicatorStatus;
     trend: 'UP' | 'DOWN' | 'FLAT'; // Compared to previous month
+    accumulated?: {
+        realized: number;
+        target: number;
+        performance: number;
+    }
 }

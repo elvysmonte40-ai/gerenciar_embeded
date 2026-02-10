@@ -9,7 +9,8 @@ export const indicatorsService = {
             .from('indicators')
             .select('*')
             .eq('organization_id', organizationId)
-            .order('title');
+            .order('sort_order', { ascending: true })
+            .order('title', { ascending: true });
 
         if (error) throw error;
         return data as Indicator[];
@@ -27,7 +28,8 @@ export const indicatorsService = {
                 )
             `)
             .eq('organization_id', organizationId)
-            .order('title');
+            .order('sort_order', { ascending: true })
+            .order('title', { ascending: true });
 
         if (error) throw error;
 
@@ -74,6 +76,33 @@ export const indicatorsService = {
                     status: 'YELLOW', // Default/Unknown
                     trend: 'FLAT'
                 }
+            }
+
+            // Calculate accumulated values for annual indicators
+            if (ind.periodicity === 'annual' && calculatedEntry) {
+                const currentYear = lastEntry?.year || new Date().getFullYear(); // Fallback if no entry
+                const currentMonth = lastEntry?.month || new Date().getMonth() + 1;
+
+                // Filter entries for current year up to current month (or all year for past years)
+                const yearlyEntries = sortedEntries.filter(e => e.year === currentYear && e.month <= currentMonth);
+
+                const accumulatedRealized = yearlyEntries.reduce((sum, e) => sum + (e.realized || 0), 0);
+                const accumulatedTarget = yearlyEntries.reduce((sum, e) => sum + (e.target || 0), 0);
+
+                // Only calculate performance if target > 0 to avoid division by zero
+                let accumulatedPerformance = 0;
+                if (accumulatedTarget !== 0) {
+                    accumulatedPerformance = calculatePerformance(accumulatedRealized, accumulatedTarget, ind.direction);
+                }
+
+                calculatedEntry = {
+                    ...calculatedEntry,
+                    accumulated: {
+                        realized: accumulatedRealized,
+                        target: accumulatedTarget,
+                        performance: accumulatedPerformance
+                    }
+                };
             }
 
             return {

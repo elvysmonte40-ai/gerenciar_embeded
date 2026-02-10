@@ -172,9 +172,12 @@ export const IndicatorChartModal: React.FC<IndicatorChartModalProps> = ({ isOpen
                                                 labelStyle={{ color: '#605E5C', marginBottom: '8px', fontSize: '12px' }}
                                                 formatter={(value: any, name: any) => {
                                                     const val = Number(value);
+                                                    const decimals = indicator.decimal_places ?? 2;
                                                     const formatted = indicator.unit === 'currency'
-                                                        ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
-                                                        : indicator.unit === 'percent' ? `${val}%` : value;
+                                                        ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: decimals, minimumFractionDigits: decimals }).format(val)
+                                                        : indicator.unit === 'percent'
+                                                            ? `${val.toFixed(decimals)}%`
+                                                            : val.toLocaleString('pt-BR', { maximumFractionDigits: decimals, minimumFractionDigits: decimals });
 
                                                     const nameMap: Record<string, string> = { realized: 'Realizado', target: 'Meta', budget: 'Orçamento' };
                                                     return [formatted, nameMap[String(name)] || name];
