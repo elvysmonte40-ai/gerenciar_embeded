@@ -1,0 +1,478 @@
+---
+
+---
+
+<div
+    id="pbi-help-modal"
+    class="fixed inset-0 z-50 hidden overflow-y-auto"
+    aria-labelledby="modal-title"
+    role="dialog"
+    aria-modal="true"
+>
+    <div
+        class="flex min-h-screen items-center justify-center pt-4 px-4 pb-20 text-center sm:p-0"
+    >
+        <!-- Background overlay -->
+        <div
+            class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+            aria-hidden="true"
+            id="modal-backdrop"
+        >
+        </div>
+
+        <!-- Modal Panel -->
+        <div
+            class="relative inline-block bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-4xl sm:w-full"
+        >
+            <!-- Modal Header -->
+            <div
+                class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-between items-center border-b border-gray-200"
+            >
+                <h3
+                    class="text-lg leading-6 font-medium text-gray-900"
+                    id="modal-title"
+                >
+                    Guia de Configuração Power BI Embedded
+                </h3>
+                <button
+                    type="button"
+                    class="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand"
+                    id="close-modal-btn"
+                >
+                    <span class="sr-only">Fechar</span>
+                    <svg
+                        class="h-6 w-6"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        aria-hidden="true"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div
+                class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 max-h-[80vh] overflow-y-auto"
+            >
+                <!-- Tabs Implementation (Simple JS) -->
+                <div class="border-b border-gray-200 mb-6">
+                    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                        <button
+                            class="tab-btn border-brand text-brand whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                            data-target="tab-overview"
+                        >
+                            Visão Geral (Tokens)
+                        </button>
+                        <button
+                            class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                            data-target="tab-azure"
+                        >
+                            Passo 1: Azure AD
+                        </button>
+                        <button
+                            class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                            data-target="tab-powerbi"
+                        >
+                            Passo 2: Power BI
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Tab Content: Overview -->
+                <div
+                    id="tab-overview"
+                    class="tab-content block space-y-4 text-sm text-gray-600"
+                >
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg
+                                    class="h-5 w-5 text-blue-400"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                >
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                        clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-blue-700">
+                                    A aplicação utiliza um <strong
+                                        >Service Principal</strong
+                                    > (identidade de aplicativo) para autenticar sem
+                                    necessidade de licença Pro para cada usuário final
+                                    (cenário "App owns data").
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 class="font-bold text-gray-900 mt-4">
+                        Entenda o Fluxo de Tokens
+                    </h4>
+                    <ol class="list-decimal list-inside space-y-2 ml-1">
+                        <li>
+                            A aplicação usa as credenciais abaixo (Tenant ID,
+                            Client ID, Secret) para se autenticar no <strong
+                                >Azure AD</strong
+                            >.
+                        </li>
+                        <li>
+                            O Azure AD retorna um <strong>Access Token</strong> (Token
+                            de Acesso).
+                        </li>
+                        <li>
+                            Com o Access Token, a aplicação solicita à API do
+                            Power BI um <strong>Embed Token</strong> específico para
+                            o relatório.
+                        </li>
+                        <li>
+                            O Embed Token é enviado ao navegador do usuário para
+                            renderizar o dashboard de forma segura.
+                        </li>
+                    </ol>
+
+                    <div
+                        class="mt-4 p-4 bg-gray-50 rounded-md border border-gray-200"
+                    >
+                        <p class="font-semibold text-gray-700">
+                            O que você precisa fornecer:
+                        </p>
+                        <ul class="list-disc list-inside mt-2 space-y-1">
+                            <li>
+                                <strong>Directory (Tenant) ID</strong>:
+                                Identifica sua organização no Azure.
+                            </li>
+                            <li>
+                                <strong>Application (Client) ID</strong>:
+                                Identifica este aplicativo específico.
+                            </li>
+                            <li>
+                                <strong>Client Secret</strong>: A "senha" da
+                                aplicação (confidencial).
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Azure -->
+                <div
+                    id="tab-azure"
+                    class="tab-content hidden space-y-4 text-sm text-gray-600"
+                >
+                    <h4 class="font-bold text-gray-900 text-base">
+                        Configuração no Portal Azure
+                    </h4>
+
+                    <div class="space-y-6">
+                        <div>
+                            <h5 class="font-semibold text-gray-800">
+                                1. Criar Registro de Aplicativo
+                            </h5>
+                            <ol
+                                class="list-decimal list-inside ml-2 mt-1 space-y-1"
+                            >
+                                <li>
+                                    Acesse o <a
+                                        href="https://portal.azure.com/"
+                                        target="_blank"
+                                        class="text-brand hover:underline"
+                                        >Portal do Azure</a
+                                    >.
+                                </li>
+                                <li>
+                                    Vá em <strong>Microsoft Entra ID</strong> (antigo
+                                    Azure Active Directory).
+                                </li>
+                                <li>
+                                    Selecione <strong>App registrations</strong> >
+                                    <strong>New registration</strong>.
+                                </li>
+                                <li>
+                                    Nomeie como <code>PowerBI-Embed-App</code> (ou
+                                    similar).
+                                </li>
+                                <li>
+                                    Em "Supported account types", selecione <strong
+                                        >Accounts in this organizational
+                                        directory only (Single tenant)</strong
+                                    >.
+                                </li>
+                                <li>Clique em <strong>Register</strong>.</li>
+                            </ol>
+                        </div>
+
+                        <div>
+                            <h5 class="font-semibold text-gray-800">
+                                2. Coletar IDs (Tenant e Client)
+                            </h5>
+                            <p class="mt-1">
+                                Na tela <strong>Overview</strong> do aplicativo criado,
+                                copie e cole os seguintes valores:
+                            </p>
+                            <ul
+                                class="list-disc list-inside ml-2 mt-1 bg-gray-50 p-3 rounded border border-gray-200"
+                            >
+                                <li>
+                                    <strong>Application (client) ID</strong> → Cole
+                                    no campo "Application (Client) ID"
+                                </li>
+                                <li>
+                                    <strong>Directory (tenant) ID</strong> → Cole
+                                    no campo "Directory (Tenant) ID"
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h5 class="font-semibold text-gray-800">
+                                3. Gerar Client Secret (Importante!)
+                            </h5>
+                            <ol
+                                class="list-decimal list-inside ml-2 mt-1 space-y-1"
+                            >
+                                <li>
+                                    No menu lateral do aplicativo, clique em <strong
+                                        >Certificates & secrets</strong
+                                    >.
+                                </li>
+                                <li>
+                                    Vá na aba <strong>Client secrets</strong> e clique
+                                    em <strong>+ New client secret</strong>.
+                                </li>
+                                <li>
+                                    Adicione uma descrição e defina a validade.
+                                    Clique em <strong>Add</strong>.
+                                </li>
+                                <li>
+                                    <span class="text-red-600 font-bold"
+                                        >ATENÇÃO:</span
+                                    > Copie o valor da coluna <strong
+                                        >Value</strong
+                                    > (Valor) imediatamente.
+                                    <span
+                                        class="italic block mt-1 ml-4 text-xs text-gray-500"
+                                        >O Azure nunca mais mostrará este valor
+                                        completo. O "Secret ID" não é o segredo.</span
+                                    >
+                                </li>
+                                <li>
+                                    Cole este valor no campo <strong
+                                        >Client Secret</strong
+                                    > no formulário.
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Power BI -->
+                <div
+                    id="tab-powerbi"
+                    class="tab-content hidden space-y-4 text-sm text-gray-600"
+                >
+                    <h4 class="font-bold text-gray-900 text-base">
+                        Habilitar Acesso no Power BI Service
+                    </h4>
+
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                        <p class="text-sm text-yellow-700">
+                            Você precisa ser <strong>Admin do Power BI</strong> para
+                            realizar o passo 1.
+                        </p>
+                    </div>
+
+                    <div class="space-y-6 mt-4">
+                        <div>
+                            <h5 class="font-semibold text-gray-800">
+                                1. Permitir Service Principals
+                            </h5>
+                            <ol
+                                class="list-decimal list-inside ml-2 mt-1 space-y-1"
+                            >
+                                <li>
+                                    Acesse o <a
+                                        href="https://app.powerbi.com/admin-portal"
+                                        target="_blank"
+                                        class="text-brand hover:underline"
+                                        >Power BI Admin Portal</a
+                                    >.
+                                </li>
+                                <li>Vá em <strong>Tenant settings</strong>.</li>
+                                <li>
+                                    Role até <strong>Developer settings</strong
+                                    >.
+                                </li>
+                                <li>
+                                    Encontre a opção <strong
+                                        >Allow service principals to use Power
+                                        BI APIs</strong
+                                    >.
+                                </li>
+                                <li>
+                                    Habilite (<strong>Enabled</strong>) e
+                                    aplique para "The entire organization" ou um
+                                    grupo de segurança específico.
+                                </li>
+                            </ol>
+                        </div>
+
+                        <div>
+                            <h5 class="font-semibold text-gray-800">
+                                2. Dar Acesso ao Workspace
+                            </h5>
+                            <ol
+                                class="list-decimal list-inside ml-2 mt-1 space-y-1"
+                            >
+                                <li>
+                                    Vá até o <strong>Workspace</strong> onde seu relatório
+                                    está publicado.
+                                </li>
+                                <li>
+                                    Clique em <strong>Manage access</strong> (Gerenciar
+                                    acesso).
+                                </li>
+                                <li>
+                                    Clique em <strong
+                                        >Add people or groups</strong
+                                    >.
+                                </li>
+                                <li>
+                                    Pesquise pelo <strong
+                                        >Nome do Aplicativo</strong
+                                    > que você criou no Azure (ex: <code
+                                        >PowerBI-Embed-App</code
+                                    >).
+                                </li>
+                                <li>
+                                    Defina a permissão como <strong
+                                        >Member</strong
+                                    > ou <strong>Admin</strong>.
+                                </li>
+                                <li>Clique em <strong>Add</strong>.</li>
+                            </ol>
+                            <p class="mt-2 text-xs text-gray-500 italic">
+                                Nota: Isso não funciona no "My Workspace". Você
+                                deve usar um Workspace V2 (App Workspace).
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div
+                class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200"
+            >
+                <button
+                    type="button"
+                    id="close-modal-btn-footer"
+                    class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                    Entendi, fechar guia
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script is:inline>
+    (function () {
+        // Modal Logic
+        const modal = document.getElementById("pbi-help-modal");
+        const backdrop = document.getElementById("modal-backdrop");
+        const closeBtn = document.getElementById("close-modal-btn");
+        const closeBtnFooter = document.getElementById(
+            "close-modal-btn-footer",
+        );
+        const tabs = document.querySelectorAll(".tab-btn");
+        const contents = document.querySelectorAll(".tab-content");
+
+        function closeModal() {
+            if (modal) modal.classList.add("hidden");
+            document.body.style.overflow = "";
+        }
+
+        // Close Event Listeners
+        if (closeBtn) closeBtn.addEventListener("click", closeModal);
+        if (closeBtnFooter)
+            closeBtnFooter.addEventListener("click", closeModal);
+        if (backdrop) backdrop.addEventListener("click", closeModal);
+
+        // Close on Escape key
+        document.addEventListener("keydown", (e) => {
+            if (
+                e.key === "Escape" &&
+                modal &&
+                !modal.classList.contains("hidden")
+            ) {
+                closeModal();
+            }
+        });
+
+        // Tab Logic
+        if (tabs) {
+            tabs.forEach((tab) => {
+                tab.addEventListener("click", () => {
+                    // Remove active state from all tabs
+                    tabs.forEach((t) => {
+                        t.classList.remove("border-brand", "text-brand");
+                        t.classList.add(
+                            "border-transparent",
+                            "text-gray-500",
+                            "hover:text-gray-700",
+                            "hover:border-gray-300",
+                        );
+                    });
+
+                    // Add active state to clicked tab
+                    tab.classList.remove(
+                        "border-transparent",
+                        "text-gray-500",
+                        "hover:text-gray-700",
+                        "hover:border-gray-300",
+                    );
+                    tab.classList.add("border-brand", "text-brand");
+
+                    // Hide all contents
+                    if (contents) {
+                        contents.forEach((c) => c.classList.add("hidden"));
+                        contents.forEach((c) => c.classList.remove("block"));
+                    }
+
+                    // Show target content
+                    const targetId = tab.getAttribute("data-target");
+                    if (targetId) {
+                        const targetContent = document.getElementById(targetId);
+                        if (targetContent) {
+                            targetContent.classList.remove("hidden");
+                            targetContent.classList.add("block");
+                        }
+                    }
+                });
+            });
+        }
+
+        // Expose open function globally
+        window.openPowerBiHelp = function () {
+            if (modal) {
+                modal.classList.remove("hidden");
+                document.body.style.overflow = "hidden";
+            } else {
+                console.error(
+                    "Modal de ajuda do Power BI não encontrado no DOM.",
+                );
+            }
+        };
+    })();
+</script>

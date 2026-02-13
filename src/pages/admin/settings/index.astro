@@ -1,6 +1,7 @@
 ---
 import AppLayout from "../../../layouts/AppLayout.astro";
 import AdminSidebar from "../../../components/AdminSidebar.astro";
+import PowerBiHelpModal from "../../../components/PowerBiHelpModal.astro";
 
 // Client-side authentication check will be handled by AppLayout script for now,
 // ensuring only admins see this page content or are redirected.
@@ -24,26 +25,51 @@ import AdminSidebar from "../../../components/AdminSidebar.astro";
         <div
             class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
         >
-            <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-                <h2
-                    class="text-base font-semibold text-text-primary flex items-center gap-2"
+            <div
+                class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center"
+            >
+                <div>
+                    <h2
+                        class="text-base font-semibold text-text-primary flex items-center gap-2"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-5 w-5 text-[#F2C811]"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                d="M20 19V9H15V19H20ZM13 19V5H8V19H13ZM6 19V13H1V19H6Z"
+                            ></path>
+                        </svg>
+                        Power BI Embedded
+                    </h2>
+                    <p class="text-xs text-text-secondary mt-1">
+                        Configure as credenciais do Service Principal (App Owns
+                        Data).
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onclick="window.openPowerBiHelp()"
+                    class="text-xs flex items-center text-brand hover:text-brand-dark font-medium"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        class="h-5 w-5 text-[#F2C811]"
-                        fill="currentColor"
+                        class="h-4 w-4 mr-1"
+                        fill="none"
                         viewBox="0 0 24 24"
+                        stroke="currentColor"
                     >
                         <path
-                            d="M20 19V9H15V19H20ZM13 19V5H8V19H13ZM6 19V13H1V19H6Z"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                         ></path>
                     </svg>
-                    Power BI Embedded
-                </h2>
-                <p class="text-xs text-text-secondary mt-1">
-                    Configure as credenciais do Service Principal (App Owns
-                    Data).
-                </p>
+                    Guia de Configuração e Tokens
+                </button>
             </div>
 
             <form id="pbi-settings-form" class="p-6 space-y-6">
@@ -143,6 +169,7 @@ import AdminSidebar from "../../../components/AdminSidebar.astro";
             </form>
         </div>
     </div>
+    <PowerBiHelpModal />
 </AppLayout>
 
 <script>

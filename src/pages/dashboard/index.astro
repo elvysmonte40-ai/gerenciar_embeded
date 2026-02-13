@@ -7,14 +7,12 @@ import DashboardSidebar from "../../components/DashboardSidebar";
 // const accessToken = ...
 ---
 
-<AppLayout title="Dashboard de Vendas">
+<AppLayout title="Dashboard de Vendas" fullWidth={true} rawSidebar={true}>
   <DashboardSidebar client:load slot="sidebar" />
 
-  <div class="pt-2">
+  <div class="h-full w-full flex flex-col">
     <!-- Power BI Embed Component -->
-    <div
-      class="w-full bg-white rounded-xl border border-gray-200 shadow-sm p-1 min-h-[600px]"
-    >
+    <div class="flex-1 w-full bg-white relative">
       <DashboardEmbed client:only="react" />
     </div>
   </div>

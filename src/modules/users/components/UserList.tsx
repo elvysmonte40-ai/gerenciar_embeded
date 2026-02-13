@@ -68,7 +68,7 @@ export default function UserList() {
             const { data, error, count } = await supabase
                 .from('profiles')
                 .select(`
-                    id, full_name, role, status, created_at, organization_id, cpf, birth_date, 
+                    id, full_name, role, status, created_at, organization_id, cpf, birth_date, can_export_data,
                     manager_id, employee_id, gender,
                     job_title_id, department_id, sector_id,
                     job_titles:job_title_id(title),

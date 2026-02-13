@@ -7,6 +7,7 @@ interface EmbedConfig {
     accessToken: string;
     embedUrl: string;
     reportId: string;
+    canExportData: boolean;
 }
 
 export const DashboardEmbed: React.FC = () => {
@@ -40,49 +41,47 @@ export const DashboardEmbed: React.FC = () => {
                     }
                 }
 
-                // If no specific dashboard (or fetch failed), utilize defaults or error handled by API if env vars exist
-                // Ideally we should pass what we have.
-                // The API defined in Supabase Functions expects body.
-
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session) throw new Error("Usuário não autenticado");
-
-                const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', session.user.id).single();
 
                 // If we don't have a dashboardId, maybe we just want to load the "default" report configured in ENV?
                 // But the API requires organization_id.
 
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) throw new Error("Usuário não autenticado");
+
+                const { data: profile } = await supabase.from('profiles').select('organization_id, can_export_data').eq('id', session.user.id).single();
+
+                if (!profile?.organization_id) {
+                    throw new Error("Usuário sem organização vinculada.");
+                }
+
                 const payload: any = {
-                    organization_id: profile?.organization_id
+                    organization_id: profile.organization_id
                 };
 
                 if (targetWorkspaceId && targetReportId) {
                     payload.group_id = targetWorkspaceId;
                     payload.report_id = targetReportId;
-                } else {
-                    // If no ID provided, we rely on the API to perhaps use defaults?
-                    // Looking at the API code: it throws if organization_id, group_id, or report_id are missing.
-                    // So we MUST provide them. 
-                    // Fallback: If no ID, try to find the "first" dashboard for this org?
+                } else if (!dashboardId) {
+                    // Try to find the "first" dashboard for this org only if no specific ID was requested
+                    const { data: firstDash } = await supabase
+                        .from('organization_dashboards')
+                        .select('workspace_id, report_id')
+                        .eq('organization_id', profile.organization_id)
+                        .order('created_at', { ascending: true })
+                        .limit(1)
+                        .single();
 
-                    if (!dashboardId) {
-                        const { data: firstDash } = await supabase
-                            .from('organization_dashboards')
-                            .select('workspace_id, report_id')
-                            .eq('organization_id', profile?.organization_id)
-                            .order('created_at', { ascending: true })
-                            .limit(1)
-                            .single();
-
-                        if (firstDash) {
-                            payload.group_id = firstDash.workspace_id;
-                            payload.report_id = firstDash.report_id;
-                        } else {
-                            // No dashboards at all?
-                            setError("Nenhum dashboard encontrado.");
-                            return;
-                        }
+                    if (firstDash) {
+                        payload.group_id = firstDash.workspace_id;
+                        payload.report_id = firstDash.report_id;
                     }
+                }
+
+                // Final validation before API call
+                if (!payload.organization_id || !payload.group_id || !payload.report_id) {
+                    // If we requested a specific ID and fell through here, it means it wasn't valid/found.
+                    // If we didn't request an ID and found no default, same issue.
+                    throw new Error("Dashboard não encontrado ou configuração incompleta.");
                 }
 
                 const response = await fetch('/api/pbi/token', {
@@ -97,7 +96,10 @@ export const DashboardEmbed: React.FC = () => {
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || "Erro ao obter token");
 
-                setConfig(data);
+                setConfig({
+                    ...data,
+                    canExportData: profile?.can_export_data
+                });
             } catch (err: any) {
                 console.error("Error loading dashboard:", err);
                 setError(err.message);
@@ -124,7 +126,7 @@ export const DashboardEmbed: React.FC = () => {
     }
 
     return (
-        <div className="h-[600px] w-full overflow-hidden rounded-xl border border-gray-200 shadow-sm">
+        <div className="h-full w-full overflow-hidden bg-white">
             <PowerBIEmbed
                 embedConfig={{
                     type: 'report',
@@ -137,7 +139,15 @@ export const DashboardEmbed: React.FC = () => {
                             filters: { visible: false, expanded: false },
                             pageNavigation: { visible: false },
                         },
-                        background: models.BackgroundType.Transparent,
+                        // background: models.BackgroundType.Transparent,
+                        extensions: !config.canExportData ? [
+                            {
+                                command: {
+                                    name: "exportData",
+                                    displayOption: models.CommandDisplayOption.Hidden
+                                }
+                            } as any
+                        ] : undefined,
                     },
                 }}
                 cssClassName="h-full w-full"
