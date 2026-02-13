@@ -67,7 +67,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [canExportData, setCanExportData] = useState(false);
+
 
     // Additional state for managers list
     const [managers, setManagers] = useState<UserProfile[]>([]);
@@ -172,7 +172,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                 setSectorId(userToEdit.sector_id || '');
                 setManagerId(userToEdit.manager_id || '');
                 setGender(userToEdit.gender || '');
-                setCanExportData(userToEdit.can_export_data || false);
+
             } else {
                 setFullName('');
                 setEmail('');
@@ -188,7 +188,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                 setPassword('');
                 setConfirmPassword('');
                 setShowPassword(false);
-                setCanExportData(false);
+
             }
             setError(null);
         }
@@ -243,7 +243,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                         sector_id: sectorId || null,
                         manager_id: managerId || null,
                         gender,
-                        can_export_data: canExportData
+
                         // email removed from here as we don't have the column in profiles yet
                     })
                     .eq('id', userToEdit.id);
@@ -281,8 +281,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                         sectorId,
                         managerId: managerId || null,
                         gender,
-                        password: password || undefined, // Send password if provided
-                        canExportData
+
                     }),
                 });
 
@@ -587,23 +586,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                                                 </select>
                                             </div>
 
-                                            {/* Permissões */}
-                                            <div className="relative flex items-start">
-                                                <div className="flex h-5 items-center">
-                                                    <input
-                                                        id="canExportData"
-                                                        name="canExportData"
-                                                        type="checkbox"
-                                                        className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
-                                                        checked={canExportData}
-                                                        onChange={(e) => setCanExportData(e.target.checked)}
-                                                    />
-                                                </div>
-                                                <div className="ml-3 text-sm">
-                                                    <label htmlFor="canExportData" className="font-medium text-gray-700">Permitir exportação de dados</label>
-                                                    <p className="text-gray-500">O usuário poderá exportar dados dos dashboards do Power BI.</p>
-                                                </div>
-                                            </div>
+
 
 
                                             {error && (
