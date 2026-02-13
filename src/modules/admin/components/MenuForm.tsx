@@ -153,7 +153,7 @@ export default function MenuForm({ menu, isOpen, onClose, onSuccess }: MenuFormP
     return createPortal(
         <div className="relative z-9999" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             {/* Background backdrop */}
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose}></div>
+            <div className="fixed inset-0 bg-black/50 transition-opacity" onClick={onClose}></div>
 
             <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
                 <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
