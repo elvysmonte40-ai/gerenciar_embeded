@@ -17,6 +17,107 @@ interface Menu {
     dashboards: Dashboard[];
 }
 
+const MenuSection = ({ menu, isCollapsed, currentId }: { menu: Menu, isCollapsed: boolean, currentId: string | null }) => {
+    // Check if any dashboard in this menu is active
+    const hasActiveDashboard = menu.dashboards.some(d => d.id === currentId);
+
+    // Auto-open if active, otherwise closed by default
+    const [isOpen, setIsOpen] = useState(hasActiveDashboard);
+
+    // Update state when currentId changes (if navigating from outside)
+    useEffect(() => {
+        if (hasActiveDashboard) {
+            setIsOpen(true);
+        }
+    }, [currentId, hasActiveDashboard]);
+
+    const toggleOpen = () => {
+        setIsOpen(!isOpen);
+    };
+
+    return (
+        <div className={`w-full space-y-1 ${isCollapsed ? 'flex flex-col items-center border-t border-gray-100 pt-3 relative' : ''}`}>
+            <button
+                onClick={toggleOpen}
+                className={`w-full flex items-center justify-between cursor-pointer ${isCollapsed ? 'justify-center hover:bg-gray-50 rounded-md p-1' : 'hover:bg-gray-50 rounded-md py-1'}`}
+                title={menu.title}
+            >
+                {isCollapsed ? (
+                    <div className="mb-1 relative">
+                        <MenuIcon iconName={menu.icon_name} iconUrl={menu.icon_url} className="h-5 w-5 text-gray-400" />
+                        <span className={`absolute -bottom-2 -right-2 transform scale-75 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                        </span>
+                    </div>
+                ) : (
+                    <div className="px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                        <div className="flex items-center gap-2">
+                            <MenuIcon iconName={menu.icon_name} iconUrl={menu.icon_url} className="h-4 w-4" />
+                            {menu.title}
+                        </div>
+                    </div>
+                )}
+                {!isCollapsed && (
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className={`h-3 w-3 text-text-tertiary mr-2 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                )}
+            </button>
+
+            {/* List of Dashboards - Conditional Rendering */}
+            <div className={`
+                space-y-1 
+                ${!isCollapsed
+                    ? `ml-2 border-l border-gray-200 pl-2 overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`
+                    : `w-full flex flex-col items-center space-y-2 overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[500px] opacity-100 mt-2' : 'max-h-0 opacity-0 mt-0'}`
+                }
+            `}>
+                {menu.dashboards.length > 0 ? (
+                    menu.dashboards.map(dashboard => (
+                        <a
+                            key={dashboard.id}
+                            href={`/dashboard?id=${dashboard.id}`}
+                            title={isCollapsed ? dashboard.name : ""}
+                            className={`block rounded-md transition-colors ${isCollapsed
+                                ? 'p-2 flex justify-center hover:bg-gray-100'
+                                : `px-3 py-2 text-sm font-medium ${currentId === dashboard.id
+                                    ? 'bg-white text-brand border border-gray-200 shadow-sm'
+                                    : 'text-text-secondary hover:bg-gray-100 hover:text-text-primary'
+                                }`
+                                } ${(isCollapsed && currentId === dashboard.id) ? 'bg-white text-brand border border-gray-200 shadow-sm' : ''}`}
+                        >
+                            {isCollapsed ? (
+                                // Generic dashboard icon when collapsed
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                    <line x1="3" y1="9" x2="21" y2="9" />
+                                    <line x1="9" y1="21" x2="9" y2="9" />
+                                </svg>
+                            ) : (
+                                dashboard.name
+                            )}
+                        </a>
+                    ))
+                ) : (
+                    !isCollapsed && (
+                        <span className="block px-3 py-2 text-xs text-text-tertiary italic">
+                            Sem dashboards
+                        </span>
+                    )
+                )}
+            </div>
+        </div>
+    );
+};
+
 export default function DashboardSidebar() {
     const [menus, setMenus] = useState<Menu[]>([]);
     const [loading, setLoading] = useState(true);
@@ -76,7 +177,7 @@ export default function DashboardSidebar() {
                 const structuredMenus: Menu[] = menusData.map((menu: any) => ({
                     ...menu,
                     dashboards: dashboardsData.filter((d: any) => d.menu_id === menu.id)
-                }));
+                })).filter(menu => menu.dashboards.length > 0);
 
                 setMenus(structuredMenus);
 
@@ -146,55 +247,12 @@ export default function DashboardSidebar() {
 
                 {/* Dynamic Menus */}
                 {menus.map(menu => (
-                    <div key={menu.id} className={`w-full space-y-1 ${isCollapsed ? 'flex flex-col items-center border-t border-gray-100 pt-3' : ''}`}>
-                        {/* Menu Title / Separator */}
-                        {isCollapsed ? (
-                            <div className="mb-1" title={menu.title}>
-                                <MenuIcon iconName={menu.icon_name} iconUrl={menu.icon_url} className="h-5 w-5 text-gray-400" />
-                            </div>
-                        ) : (
-                            <div className="px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 mb-2">
-                                <MenuIcon iconName={menu.icon_name} iconUrl={menu.icon_url} className="h-4 w-4" />
-                                {menu.title}
-                            </div>
-                        )}
-
-                        <div className={`space-y-1 ${!isCollapsed ? 'ml-2 border-l border-gray-200 pl-2' : 'w-full flex flex-col items-center space-y-2'}`}>
-                            {menu.dashboards.length > 0 ? (
-                                menu.dashboards.map(dashboard => (
-                                    <a
-                                        key={dashboard.id}
-                                        href={`/dashboard?id=${dashboard.id}`}
-                                        title={isCollapsed ? dashboard.name : ""}
-                                        className={`block rounded-md transition-colors ${isCollapsed
-                                            ? 'p-2 flex justify-center hover:bg-gray-100'
-                                            : `px-3 py-2 text-sm font-medium ${currentId === dashboard.id
-                                                ? 'bg-white text-brand border border-gray-200 shadow-sm'
-                                                : 'text-text-secondary hover:bg-gray-100 hover:text-text-primary'
-                                            }`
-                                            } ${(isCollapsed && currentId === dashboard.id) ? 'bg-white text-brand border border-gray-200 shadow-sm' : ''}`}
-                                    >
-                                        {isCollapsed ? (
-                                            // Generic dashboard icon when collapsed
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                                                <line x1="3" y1="9" x2="21" y2="9" />
-                                                <line x1="9" y1="21" x2="9" y2="9" />
-                                            </svg>
-                                        ) : (
-                                            dashboard.name
-                                        )}
-                                    </a>
-                                ))
-                            ) : (
-                                !isCollapsed && (
-                                    <span className="block px-3 py-2 text-xs text-gray-400 italic">
-                                        Sem dashboards
-                                    </span>
-                                )
-                            )}
-                        </div>
-                    </div>
+                    <MenuSection
+                        key={menu.id}
+                        menu={menu}
+                        isCollapsed={isCollapsed}
+                        currentId={currentId}
+                    />
                 ))}
 
                 {/* Admin Link */}
