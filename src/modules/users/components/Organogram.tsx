@@ -30,12 +30,27 @@ export default function Organogram() {
 
             const { data, error } = await supabase
                 .from('profiles')
-                .select('id, full_name, job_title, manager_id')
+                .select(`
+                    id, 
+                    full_name, 
+                    manager_id,
+                    job_title_id,
+                    job_titles:job_title_id (title)
+                `)
                 .eq('organization_id', orgId);
 
             if (error) throw error;
 
-            const builtTree = buildTree(data || []);
+            // Map data to flattened structure
+            const formattedData = (data || []).map((u: any) => ({
+                id: u.id,
+                full_name: u.full_name,
+                manager_id: u.manager_id,
+                // Use relational title if available, fallback to legacy text if needed (or empty)
+                job_title: (Array.isArray(u.job_titles) ? u.job_titles[0]?.title : u.job_titles?.title) || 'Sem cargo'
+            }));
+
+            const builtTree = buildTree(formattedData);
             setTree(builtTree);
 
         } catch (err: any) {

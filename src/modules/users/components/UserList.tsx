@@ -22,6 +22,7 @@ interface UserProfile {
     job_titles?: { title: string };
     departments?: { name: string };
     sectors?: { name: string };
+    organization_role_id?: string;
 }
 
 export default function UserList() {
@@ -70,7 +71,7 @@ export default function UserList() {
                 .select(`
                     id, full_name, role, status, created_at, organization_id, cpf, birth_date, can_export_data,
                     manager_id, employee_id, gender,
-                    job_title_id, department_id, sector_id,
+                    job_title_id, department_id, sector_id, organization_role_id,
                     job_titles:job_title_id(title),
                     departments:department_id(name),
                     sectors:sector_id(name)
