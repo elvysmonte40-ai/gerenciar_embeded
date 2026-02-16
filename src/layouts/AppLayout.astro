@@ -1,6 +1,9 @@
 ---
 import "../styles/global.css";
+import "../styles/global.css";
 import ProfileModal from "../components/ProfileModal";
+import { SystemMessageManager } from "../components/SystemMessageManager";
+import { NotificationBell } from "../components/NotificationBell";
 
 interface Props {
   title: string;
@@ -119,111 +122,119 @@ const {
         }
 
         <!-- User Info (Hidden by default, shown via JS) -->
-        <div id="user-info" class="relative" style="display: none;">
-          <button
-            id="user-menu-button"
-            class="flex items-center gap-3 p-1 rounded-full hover:bg-gray-50 transition-colors focus:outline-none"
-          >
-            <span
-              id="org-name"
-              class="text-sm font-medium text-text-secondary hidden md:block"
-              >Empresa</span
+        <div
+          id="user-info"
+          class="relative flex items-center gap-3"
+          style="display: none;"
+        >
+          <NotificationBell client:idle />
+
+          <div class="relative">
+            <button
+              id="user-menu-button"
+              class="flex items-center gap-3 p-1 rounded-full hover:bg-gray-50 transition-colors focus:outline-none"
             >
+              <span
+                id="org-name"
+                class="text-sm font-medium text-text-secondary hidden md:block"
+                >Empresa</span
+              >
+              <div
+                id="user-avatar"
+                class="h-8 w-8 rounded-full bg-brand-light text-brand font-bold flex items-center justify-center text-xs ring-2 ring-white shadow-sm"
+              >
+                U
+              </div>
+            </button>
+
+            <!-- Dropdown Menu -->
             <div
-              id="user-avatar"
-              class="h-8 w-8 rounded-full bg-brand-light text-brand font-bold flex items-center justify-center text-xs ring-2 ring-white shadow-sm"
+              id="user-dropdown"
+              class="hidden absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50 transform origin-top-right transition-all duration-200"
+              role="menu"
             >
-              U
-            </div>
-          </button>
-
-          <!-- Dropdown Menu -->
-          <div
-            id="user-dropdown"
-            class="hidden absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50 transform origin-top-right transition-all duration-200"
-            role="menu"
-          >
-            <div class="px-4 py-3 border-b border-gray-100">
-              <p
-                class="text-xs text-text-secondary uppercase tracking-wider font-semibold"
-              >
-                Logado como
-              </p>
-              <p
-                id="user-email"
-                class="text-sm font-medium text-text-primary truncate mt-1"
-              >
-                ...
-              </p>
-            </div>
-
-            <div class="py-1 border-b border-gray-100">
-              <button
-                id="profile-button"
-                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-brand flex items-center gap-2 transition-colors"
-                role="menuitem"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+              <div class="px-4 py-3 border-b border-gray-100">
+                <p
+                  class="text-xs text-text-secondary uppercase tracking-wider font-semibold"
                 >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  ></path>
-                </svg>
-                Editar Perfil
-              </button>
-              <button
-                id="password-button"
-                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-brand flex items-center gap-2 transition-colors"
-                role="menuitem"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+                  Logado como
+                </p>
+                <p
+                  id="user-email"
+                  class="text-sm font-medium text-text-primary truncate mt-1"
                 >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                  ></path>
-                </svg>
-                Alterar Senha
-              </button>
-            </div>
+                  ...
+                </p>
+              </div>
 
-            <div class="py-1">
-              <button
-                id="logout-button"
-                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-brand flex items-center gap-2 transition-colors"
-                role="menuitem"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+              <div class="py-1 border-b border-gray-100">
+                <button
+                  id="profile-button"
+                  class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-brand flex items-center gap-2 transition-colors"
+                  role="menuitem"
                 >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                  ></path>
-                </svg>
-                Sair
-              </button>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    ></path>
+                  </svg>
+                  Editar Perfil
+                </button>
+                <button
+                  id="password-button"
+                  class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-brand flex items-center gap-2 transition-colors"
+                  role="menuitem"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    ></path>
+                  </svg>
+                  Alterar Senha
+                </button>
+              </div>
+
+              <div class="py-1">
+                <button
+                  id="logout-button"
+                  class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-brand flex items-center gap-2 transition-colors"
+                  role="menuitem"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                    ></path>
+                  </svg>
+                  Sair
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -264,6 +275,7 @@ const {
 
     <!-- Modals -->
     <ProfileModal client:idle />
+    <SystemMessageManager client:idle />
 
     <script>
       import { supabase } from "../lib/supabase";
@@ -337,7 +349,7 @@ const {
               emailEl.textContent = session.user.email;
             }
 
-            userInfo.style.display = "block";
+            userInfo.style.display = "flex";
           }
         } catch (e) {
           console.error("Error updating header:", e);

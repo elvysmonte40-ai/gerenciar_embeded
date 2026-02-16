@@ -2,78 +2,157 @@
 
 ---
 
-<div slot="sidebar" class="space-y-1">
-    <div class="px-3 pb-2">
-        <h3
-            class="text-xs font-semibold text-text-secondary uppercase tracking-wider"
+<div slot="sidebar" class="space-y-4">
+    <!-- Grupo Dashboard -->
+    <div class="sidebar-group">
+        <button
+            class="w-full flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded-md py-1 group-toggle"
+            aria-expanded="true"
         >
-            Administração
-        </h3>
+            <div
+                class="px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2"
+            >
+                Dashboard
+            </div>
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-3 w-3 text-text-tertiary mr-2 transition-transform duration-200 chevron rotate-180"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"></path>
+            </svg>
+        </button>
+
+        <div
+            class="space-y-1 ml-2 border-l border-gray-200 pl-2 overflow-hidden transition-all duration-300 ease-in-out group-content max-h-[500px] opacity-100"
+        >
+            <a
+                href="/admin/dashboards"
+                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+            >
+                Dashboards
+            </a>
+            <a
+                href="/admin/settings"
+                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+            >
+                Power BI Embedded
+            </a>
+            <a
+                href="/admin/menus"
+                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+            >
+                Menus
+            </a>
+        </div>
     </div>
 
-    <a
-        href="/admin/dashboards"
-        class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
-    >
-        Dashboards
-    </a>
-    <a
-        href="/admin/menus"
-        class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
-    >
-        Menus
-    </a>
-    <a
-        href="/admin/perfis"
-        class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
-    >
-        Perfis
-    </a>
-    <div class="pt-4 px-3 pb-2">
-        <h3
-            class="text-xs font-semibold text-text-secondary uppercase tracking-wider"
+    <!-- Grupo Geral -->
+    <div class="sidebar-group">
+        <button
+            class="w-full flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded-md py-1 group-toggle"
+            aria-expanded="true"
         >
-            Configurações
-        </h3>
-    </div>
+            <div
+                class="px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2"
+            >
+                Geral
+            </div>
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-3 w-3 text-text-tertiary mr-2 transition-transform duration-200 chevron rotate-180"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"></path>
+            </svg>
+        </button>
 
-    <a
-        href="/admin/subscription"
-        class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
-    >
-        Assinatura
-    </a>
-    <a
-        href="/admin/email-provider"
-        class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
-    >
-        Provedor de Email
-    </a>
-    <a
-        href="/admin/modules"
-        class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
-    >
-        Módulos
-    </a>
-    <a
-        href="/admin/settings"
-        class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
-    >
-        Power BI Embedded
-    </a>
-
-    <div class="pt-4 px-3 pb-2">
-        <h3
-            class="text-xs font-semibold text-text-secondary uppercase tracking-wider"
+        <div
+            class="space-y-1 ml-2 border-l border-gray-200 pl-2 overflow-hidden transition-all duration-300 ease-in-out group-content max-h-[500px] opacity-100"
         >
-            Navegação
-        </h3>
+            <a
+                href="/admin/perfis"
+                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+            >
+                Perfis
+            </a>
+            <a
+                href="/admin/subscription"
+                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+            >
+                Assinatura
+            </a>
+            <a
+                href="/admin/email-provider"
+                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+            >
+                Provedor de Email
+            </a>
+            <a
+                href="/admin/modules"
+                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+            >
+                Módulos
+            </a>
+            <a
+                href="/admin/messages"
+                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+            >
+                Mensagens do Sistema
+            </a>
+        </div>
     </div>
-
-    <a
-        href="/dashboard"
-        class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
-    >
-        ← Voltar ao Dashboard
-    </a>
 </div>
+
+<script>
+    function setupToggles() {
+        const toggles = document.querySelectorAll(".group-toggle");
+
+        toggles.forEach((toggle) => {
+            if (toggle.hasAttribute("data-initialized")) return;
+            toggle.setAttribute("data-initialized", "true");
+
+            // Find elements relative to the toggle button
+            const chevron = toggle.querySelector(".chevron");
+            // The content div is the next sibling
+            const content = toggle.nextElementSibling;
+
+            if (!content) return;
+
+            toggle.addEventListener("click", () => {
+                const isExpanded =
+                    toggle.getAttribute("aria-expanded") === "true";
+
+                // Toggle state
+                toggle.setAttribute("aria-expanded", String(!isExpanded));
+
+                // Animate content
+                if (isExpanded) {
+                    content.classList.remove("max-h-[500px]", "opacity-100");
+                    content.classList.add("max-h-0", "opacity-0");
+                    if (chevron) chevron.classList.remove("rotate-180");
+                } else {
+                    content.classList.remove("max-h-0", "opacity-0");
+                    content.classList.add("max-h-[500px]", "opacity-100");
+                    if (chevron) chevron.classList.add("rotate-180");
+                }
+            });
+        });
+    }
+
+    // Run setup on page load and after Astro swaps pages
+    document.addEventListener("astro:page-load", setupToggles);
+    document.addEventListener("DOMContentLoaded", setupToggles);
+</script>
