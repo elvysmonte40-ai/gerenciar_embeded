@@ -1,10 +1,21 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import type { SystemMessage } from "../types/system-messages";
+import { ProcessService } from "../modules/processes/services";
+import { Bell, CheckCircle, Info } from 'lucide-react';
+
+type NotificationItem = {
+    id: string;
+    type: 'system_message' | 'process_approval';
+    title: string;
+    created_at: string;
+    read: boolean;
+    data: any;
+    link?: string;
+};
 
 export const NotificationBell: React.FC = () => {
-    const [messages, setMessages] = useState<SystemMessage[]>([]);
-    const [readMessageIds, setReadMessageIds] = useState<Set<string>>(new Set());
+    const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -20,73 +31,101 @@ export const NotificationBell: React.FC = () => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const fetchMessages = async () => {
+    const fetchNotifications = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
-        // Get user profile for filtering
-        const { data: profile } = await supabase
-            .from("profiles")
-            .select("role, organization_id")
-            .eq("id", session.user.id)
-            .single();
+        const allNotifications: NotificationItem[] = [];
 
-        if (!profile) return;
+        // 1. Fetch System Messages
+        try {
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("role, organization_id")
+                .eq("id", session.user.id)
+                .single();
 
-        // Fetch active messages
-        const now = new Date().toISOString();
-        const { data: allMessages, error } = await supabase
-            .from("system_messages")
-            .select("*")
-            .eq("status", "active")
-            .eq("organization_id", profile.organization_id) // Ensure org filter
-            .or(`start_date.is.null,start_date.lte.${now}`)
-            .or(`end_date.is.null,end_date.gte.${now}`)
-            .order('created_at', { ascending: false });
+            if (profile) {
+                const now = new Date().toISOString();
+                const { data: messages } = await supabase
+                    .from("system_messages")
+                    .select("*")
+                    .eq("status", "active")
+                    .eq("organization_id", profile.organization_id)
+                    .or(`start_date.is.null,start_date.lte.${now}`)
+                    .or(`end_date.is.null,end_date.gte.${now}`)
+                    .order('created_at', { ascending: false });
 
-        if (error || !allMessages) return;
+                if (messages) {
+                    // Filter
+                    const relevant = messages.filter((msg) => {
+                        if (msg.target_audience === "all") return true;
+                        const targetIds = Array.isArray(msg.target_ids) ? msg.target_ids : [];
+                        if (msg.target_audience === "profile") return targetIds.includes(profile.role);
+                        if (msg.target_audience === "user") return targetIds.includes(session.user.id);
+                        return false;
+                    });
 
-        // Filter by Target Audience (Same logic as Manager)
-        const relevantMessages = allMessages.filter((msg) => {
-            if (msg.target_audience === "all") return true;
+                    // Check reads
+                    const { data: reads } = await supabase
+                        .from("system_message_reads")
+                        .select("message_id")
+                        .eq("user_id", session.user.id);
 
-            const targetIds = Array.isArray(msg.target_ids) ? msg.target_ids : [];
-            if (msg.target_audience === "profile") {
-                return targetIds.includes(profile.role);
+                    const readIds = new Set(reads?.map(r => r.message_id));
+
+                    relevant.forEach(msg => {
+                        allNotifications.push({
+                            id: msg.id,
+                            type: 'system_message',
+                            title: msg.title,
+                            created_at: msg.created_at,
+                            read: readIds.has(msg.id),
+                            data: msg
+                        });
+                    });
+                }
             }
-            if (msg.target_audience === "user") {
-                return targetIds.includes(session.user.id);
+        } catch (e) {
+            console.error("Error fetching messages", e);
+        }
+
+        // 2. Fetch Process Approvals
+        try {
+            const approvals = await ProcessService.getPendingApprovals(session.user.id);
+            if (approvals) {
+                approvals.forEach((app: any) => {
+                    allNotifications.push({
+                        id: app.id,
+                        type: 'process_approval',
+                        title: `Aprovação Pendente: ${app.version.process.title} (v${app.version.version_number})`,
+                        created_at: app.created_at,
+                        read: false, // Approvals are always "unread" actions until done
+                        data: app,
+                        link: `/processes/${app.version.process.code || app.version.process.id}` // Link to viewer
+                    });
+                });
             }
-            return false;
-        });
+        } catch (e) {
+            console.error("Error fetching approvals", e);
+        }
 
-        // Check filtering by read/unread for badge
-        const { data: reads } = await supabase
-            .from("system_message_reads")
-            .select("message_id")
-            .eq("user_id", session.user.id);
+        // Sort by date desc
+        allNotifications.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-
-
-        const readIds = new Set(reads?.map(r => r.message_id));
-        setReadMessageIds(readIds);
-
-        setMessages(relevantMessages);
-        setUnreadCount(relevantMessages.filter(m => !readIds.has(m.id)).length);
+        setNotifications(allNotifications);
+        setUnreadCount(allNotifications.filter(n => !n.read).length);
     };
 
     useEffect(() => {
-        fetchMessages();
+        fetchNotifications();
 
-        // Listen for new messages or reads
+        // Subscriptions
         const channel = supabase
-            .channel('public:system_messages_bell')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'system_messages' }, () => {
-                fetchMessages();
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'system_message_reads' }, () => {
-                fetchMessages();
-            })
+            .channel('public:notifications_bell')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'system_messages' }, fetchNotifications)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'system_message_reads' }, fetchNotifications)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'process_version_approvers' }, fetchNotifications) // Listen for approvals
             .subscribe();
 
         return () => {
@@ -94,13 +133,17 @@ export const NotificationBell: React.FC = () => {
         }
     }, []);
 
-    const handleMessageClick = (msg: SystemMessage) => {
+    const handleNotificationClick = (notification: NotificationItem) => {
         setIsOpen(false);
-        window.dispatchEvent(
-            new CustomEvent('open-system-message', {
-                detail: { message: msg }
-            })
-        );
+        if (notification.type === 'process_approval' && notification.link) {
+            window.location.href = notification.link;
+        } else if (notification.type === 'system_message') {
+            window.dispatchEvent(
+                new CustomEvent('open-system-message', {
+                    detail: { message: notification.data }
+                })
+            );
+        }
     };
 
     return (
@@ -109,20 +152,7 @@ export const NotificationBell: React.FC = () => {
                 onClick={() => setIsOpen(!isOpen)}
                 className="p-2 text-gray-500 hover:text-brand hover:bg-gray-50 rounded-full focus:outline-none transition-colors relative"
             >
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                    />
-                </svg>
+                <Bell className="h-6 w-6" />
                 {unreadCount > 0 && (
                     <span className="absolute top-1 right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-red-600 rounded-full">
                         {unreadCount}
@@ -131,33 +161,45 @@ export const NotificationBell: React.FC = () => {
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg py-1 z-50 ring-1 ring-black ring-opacity-5 animate-in fade-in zoom-in duration-200">
-                    <div className="px-4 py-2 border-b border-gray-100 bg-gray-50">
-                        <h3 className="text-sm font-semibold text-text-primary">Notificações</h3>
+                <div className="absolute right-0 mt-2 w-96 bg-white rounded-md shadow-lg py-1 z-50 ring-1 ring-black ring-opacity-5 animate-in fade-in zoom-in duration-200">
+                    <div className="px-4 py-2 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                        <h3 className="text-sm font-semibold text-gray-900">Notificações</h3>
+                        {unreadCount > 0 && <span className="text-xs text-brand font-medium">{unreadCount} novas</span>}
                     </div>
                     <div className="max-h-96 overflow-y-auto">
-                        {messages.length > 0 ? (
-                            messages.map(msg => (
+                        {notifications.length > 0 ? (
+                            notifications.map(notif => (
                                 <button
-                                    key={msg.id}
-                                    onClick={() => handleMessageClick(msg)}
-                                    className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors"
+                                    key={notif.id}
+                                    onClick={() => handleNotificationClick(notif)}
+                                    className={`w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors flex gap-3 ${!notif.read ? 'bg-blue-50/30' : ''}`}
                                 >
-                                    <p className="text-sm font-medium text-text-primary truncate">{msg.title}</p>
-                                    <div className="flex justify-between items-center mt-1">
-                                        <p className="text-xs text-text-secondary">
-                                            {new Date(msg.created_at).toLocaleDateString('pt-BR')}
-                                        </p>
-                                        {readMessageIds.has(msg.id) ? (
-                                            <span className="text-xs text-gray-400 font-medium">Lida</span>
+                                    <div className="mt-1 shrink-0">
+                                        {notif.type === 'process_approval' ? (
+                                            <CheckCircle className="h-5 w-5 text-amber-500" />
                                         ) : (
-                                            <span className="text-xs text-brand font-medium">Ver</span>
+                                            <Info className="h-5 w-5 text-brand" />
                                         )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`text-sm font-medium truncate ${!notif.read ? 'text-gray-900' : 'text-gray-600'}`}>
+                                            {notif.title}
+                                        </p>
+                                        <div className="flex justify-between items-center mt-1">
+                                            <p className="text-xs text-gray-400">
+                                                {new Date(notif.created_at).toLocaleDateString('pt-BR')} {new Date(notif.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                            {!notif.read && (
+                                                <span className="text-xs text-brand font-medium">
+                                                    {notif.type === 'process_approval' ? 'Revisar' : 'Ver'}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </button>
                             ))
                         ) : (
-                            <div className="px-4 py-6 text-center text-sm text-text-tertiary">
+                            <div className="px-4 py-6 text-center text-sm text-gray-500">
                                 Nenhuma notificação
                             </div>
                         )}
