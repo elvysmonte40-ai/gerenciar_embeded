@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
-import type { OrganizationRole, OrganizationDashboard } from '../../../types/dashboard';
+import type { OrganizationRole, OrganizationDashboard, AppPermissions } from '../../../types/dashboard';
+import { DEFAULT_PERMISSIONS, mergePermissions } from '../../../utils/permissions';
 
 interface RoleFormProps {
     role?: OrganizationRole | null;
@@ -24,6 +25,7 @@ export default function RoleForm({ role, isOpen, onClose, onSuccess }: RoleFormP
     const [pbiRoles, setPbiRoles] = useState('');
     const [canExportData, setCanExportData] = useState(false);
     const [selectedDashboardIds, setSelectedDashboardIds] = useState<string[]>([]);
+    const [permissions, setPermissions] = useState<AppPermissions>(DEFAULT_PERMISSIONS);
 
     useEffect(() => {
         setMounted(true);
@@ -40,6 +42,9 @@ export default function RoleForm({ role, isOpen, onClose, onSuccess }: RoleFormP
                 setPbiRoles(role.pbi_roles || '');
                 setCanExportData(role.can_export_data);
 
+                // Merge existing permissions with default structure to ensure valid state
+                setPermissions(mergePermissions(role.permissions));
+
                 // Fetch assigned dashboards
                 fetchRoleDashboards(role.id);
             } else {
@@ -49,6 +54,7 @@ export default function RoleForm({ role, isOpen, onClose, onSuccess }: RoleFormP
                 setPbiRoles('');
                 setCanExportData(false);
                 setSelectedDashboardIds([]);
+                setPermissions(DEFAULT_PERMISSIONS);
             }
             setError(null);
         }
@@ -97,6 +103,16 @@ export default function RoleForm({ role, isOpen, onClose, onSuccess }: RoleFormP
         });
     };
 
+    const handlePermissionChange = (resource: keyof AppPermissions, action: string, value: boolean) => {
+        setPermissions(prev => ({
+            ...prev,
+            [resource]: {
+                ...prev[resource],
+                [action]: value
+            }
+        }));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -121,6 +137,7 @@ export default function RoleForm({ role, isOpen, onClose, onSuccess }: RoleFormP
                 description,
                 pbi_roles: pbiRoles || null,
                 can_export_data: canExportData,
+                permissions: permissions, // Save JSONB
                 updated_at: new Date().toISOString(),
             };
 
@@ -191,7 +208,7 @@ export default function RoleForm({ role, isOpen, onClose, onSuccess }: RoleFormP
 
             <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
                 <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                    <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+                    <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl">
                         <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                             <div className="sm:flex sm:items-start">
                                 <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
@@ -238,55 +255,115 @@ export default function RoleForm({ role, isOpen, onClose, onSuccess }: RoleFormP
                                                 />
                                             </div>
 
-                                            {/* Export Toggle */}
-                                            <div className="flex items-center justify-between py-2 border-b border-gray-100 pb-4">
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-medium text-gray-900">Exportar Dados</span>
-                                                    <span className="text-xs text-gray-500">Permitir que usuários deste perfil exportem dados do Power BI</span>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {/* Permissions */}
+                                                <div>
+                                                    <h4 className="text-sm font-medium text-gray-900 mb-3 block">Permissões de Acesso</h4>
+                                                    <div className="border border-gray-200 rounded-md overflow-hidden">
+                                                        <table className="min-w-full divide-y divide-gray-200">
+                                                            <thead className="bg-gray-50">
+                                                                <tr>
+                                                                    <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Módulo</th>
+                                                                    <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ver</th>
+                                                                    <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Criar</th>
+                                                                    <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Editar</th>
+                                                                    <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Excluir</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="bg-white divide-y divide-gray-200">
+                                                                {[
+                                                                    { key: 'users', label: 'Usuários' },
+                                                                    { key: 'processes', label: 'Processos' },
+                                                                    { key: 'indicators', label: 'Indicadores' },
+                                                                    { key: 'profiles', label: 'Perfis de Acesso' },
+                                                                ].map((module) => (
+                                                                    <tr key={module.key}>
+                                                                        <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">{module.label}</td>
+                                                                        {['view', 'create', 'edit', 'delete'].map((action) => (
+                                                                            <td key={action} className="px-3 py-2 whitespace-nowrap text-center">
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+                                                                                    checked={(permissions[module.key as keyof AppPermissions] as any)[action]}
+                                                                                    onChange={(e) => handlePermissionChange(module.key as keyof AppPermissions, action, e.target.checked)}
+                                                                                />
+                                                                            </td>
+                                                                        ))}
+                                                                    </tr>
+                                                                ))}
+                                                                <tr>
+                                                                    <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">Configurações</td>
+                                                                    <td colSpan={4} className="px-3 py-2 text-left">
+                                                                        <div className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                id="perm-settings"
+                                                                                className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand mr-2"
+                                                                                checked={permissions.organization.manage_settings}
+                                                                                onChange={(e) => handlePermissionChange('organization', 'manage_settings', e.target.checked)}
+                                                                            />
+                                                                            <label htmlFor="perm-settings" className="text-sm text-gray-700">Gerenciar Configurações da Organização</label>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    className={`${canExportData ? 'bg-brand' : 'bg-gray-200'} relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2`}
-                                                    role="switch"
-                                                    aria-checked={canExportData}
-                                                    onClick={() => setCanExportData(!canExportData)}
-                                                >
-                                                    <span className={`${canExportData ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}></span>
-                                                </button>
-                                            </div>
 
-                                            {/* Dashboards Selection */}
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">Dashboards Permitidos</label>
-                                                <div className="border border-gray-300 rounded-md max-h-60 overflow-y-auto divide-y divide-gray-100 bg-gray-50">
-                                                    {dashboards.length === 0 ? (
-                                                        <div className="p-4 text-sm text-gray-500 text-center">Nenhum dashboard disponível.</div>
-                                                    ) : (
-                                                        dashboards.map(dash => (
-                                                            <div key={dash.id} className="relative flex items-start px-4 py-3 hover:bg-white transition-colors">
-                                                                <div className="min-w-0 flex-1 text-sm">
-                                                                    <label htmlFor={`dash-${dash.id}`} className="font-medium text-gray-700 select-none cursor-pointer block">
-                                                                        {dash.name}
-                                                                        {dash.description && <span className="block text-gray-500 text-xs font-normal mt-0.5">{dash.description}</span>}
-                                                                    </label>
-                                                                </div>
-                                                                <div className="ml-3 flex h-5 items-center">
-                                                                    <input
-                                                                        id={`dash-${dash.id}`}
-                                                                        name={`dash-${dash.id}`}
-                                                                        type="checkbox"
-                                                                        className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
-                                                                        checked={selectedDashboardIds.includes(dash.id)}
-                                                                        onChange={() => handleDashboardToggle(dash.id)}
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        ))
-                                                    )}
+                                                {/* Feature Toggles & Dashboards */}
+                                                <div className="space-y-6">
+                                                    {/* Export Toggle */}
+                                                    <div className="flex items-center justify-between py-2 border-b border-gray-100 pb-4">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm font-medium text-gray-900">Exportar Dados</span>
+                                                            <span className="text-xs text-gray-500">Permitir que usuários deste perfil exportem dados do Power BI</span>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            className={`${canExportData ? 'bg-brand' : 'bg-gray-200'} relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2`}
+                                                            role="switch"
+                                                            aria-checked={canExportData}
+                                                            onClick={() => setCanExportData(!canExportData)}
+                                                        >
+                                                            <span className={`${canExportData ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}></span>
+                                                        </button>
+                                                    </div>
+
+                                                    {/* Dashboards Selection */}
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-2">Dashboards Permitidos</label>
+                                                        <div className="border border-gray-300 rounded-md max-h-60 overflow-y-auto divide-y divide-gray-100 bg-gray-50">
+                                                            {dashboards.length === 0 ? (
+                                                                <div className="p-4 text-sm text-gray-500 text-center">Nenhum dashboard disponível.</div>
+                                                            ) : (
+                                                                dashboards.map(dash => (
+                                                                    <div key={dash.id} className="relative flex items-start px-4 py-3 hover:bg-white transition-colors">
+                                                                        <div className="min-w-0 flex-1 text-sm">
+                                                                            <label htmlFor={`dash-${dash.id}`} className="font-medium text-gray-700 select-none cursor-pointer block">
+                                                                                {dash.name}
+                                                                                {dash.description && <span className="block text-gray-500 text-xs font-normal mt-0.5">{dash.description}</span>}
+                                                                            </label>
+                                                                        </div>
+                                                                        <div className="ml-3 flex h-5 items-center">
+                                                                            <input
+                                                                                id={`dash-${dash.id}`}
+                                                                                name={`dash-${dash.id}`}
+                                                                                type="checkbox"
+                                                                                className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+                                                                                checked={selectedDashboardIds.includes(dash.id)}
+                                                                                onChange={() => handleDashboardToggle(dash.id)}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                ))
+                                                            )}
+                                                        </div>
+                                                        <p className="mt-2 text-xs text-gray-500 text-right">
+                                                            {selectedDashboardIds.length} dashboards selecionados
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <p className="mt-2 text-xs text-gray-500 text-right">
-                                                    {selectedDashboardIds.length} dashboards selecionados
-                                                </p>
                                             </div>
 
                                             {error && (
@@ -321,3 +398,4 @@ export default function RoleForm({ role, isOpen, onClose, onSuccess }: RoleFormP
         document.body
     );
 }
+

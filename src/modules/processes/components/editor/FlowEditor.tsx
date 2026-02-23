@@ -33,6 +33,7 @@ import {
 interface FlowEditorProps {
     initialFlowData?: any;
     onFlowChange: (flowData: any) => void;
+    readOnly?: boolean;
 }
 
 // Map of available icons for nodes
@@ -64,7 +65,7 @@ const initialNodes: Node[] = [
 // -- COMPONENTS --
 
 // Inline Text Editor
-const EditableLabel = ({ id, label }: { id: string, label: string }) => {
+const EditableLabel = ({ id, label, readOnly }: { id: string, label: string, readOnly?: boolean }) => {
     const { setNodes } = useReactFlow();
     const [isEditing, setIsEditing] = useState(false);
     const [value, setValue] = useState(label);
@@ -113,7 +114,11 @@ const EditableLabel = ({ id, label }: { id: string, label: string }) => {
     }
 
     return (
-        <span onDoubleClick={() => setIsEditing(true)} className="cursor-text w-full text-center block px-2 truncate" title="Clique duas vezes para editar">
+        <span
+            onDoubleClick={() => !readOnly && setIsEditing(true)}
+            className={`w-full text-center block px-2 truncate ${readOnly ? '' : 'cursor-text'}`}
+            title={readOnly ? label : "Clique duas vezes para editar"}
+        >
             {label}
         </span>
     );
@@ -137,15 +142,15 @@ const CustomNode = ({ id, data, selected }: NodeProps) => {
             style={{ backgroundColor: data.color || '#ffffff' }}
         >
             {/* Handles - All 4 sides with adjusted positioning */}
-            <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-gray-400 hover:!bg-blue-500 transition-colors" />
-            <Handle type="source" position={Position.Right} className="!w-3 !h-3 !bg-gray-400 hover:!bg-blue-500 transition-colors" />
-            <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-gray-400 hover:!bg-blue-500 transition-colors" />
-            <Handle type="target" position={Position.Left} className="!w-3 !h-3 !bg-gray-400 hover:!bg-blue-500 transition-colors" />
+            <Handle type="target" position={Position.Top} className="w-3! h-3! bg-gray-400! hover:bg-blue-500! transition-colors" />
+            <Handle type="source" position={Position.Right} className="w-3! h-3! bg-gray-400! hover:bg-blue-500! transition-colors" />
+            <Handle type="source" position={Position.Bottom} className="w-3! h-3! bg-gray-400! hover:bg-blue-500! transition-colors" />
+            <Handle type="target" position={Position.Left} className="w-3! h-3! bg-gray-400! hover:bg-blue-500! transition-colors" />
 
             {/* Content */}
             <div className={`flex flex-col items-center gap-1 ${contentRotation} ${data.shape === 'circle' ? 'p-1' : 'px-4 py-2'}`}>
                 {Icon && <Icon className="w-5 h-5 opacity-70 mb-1" />}
-                <EditableLabel id={id} label={data.label} />
+                <EditableLabel id={id} label={data.label} readOnly={data.readOnly} />
             </div>
         </div>
     );
@@ -156,10 +161,11 @@ const nodeTypes = {
 };
 
 // Property Inspector for Selected Node
-const NodeInspector = ({ selectedNode }: { selectedNode: Node }) => {
+const NodeInspector = ({ selectedNode, readOnly }: { selectedNode: Node, readOnly?: boolean }) => {
     const { setNodes } = useReactFlow();
 
     const updateNodeData = (key: string, value: any) => {
+        if (readOnly) return;
         setNodes((nds) =>
             nds.map((node) => {
                 if (node.id === selectedNode.id) {
@@ -175,12 +181,14 @@ const NodeInspector = ({ selectedNode }: { selectedNode: Node }) => {
             <div className="p-4 border-b border-gray-200 bg-white">
                 <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                     <Settings className="w-4 h-4" />
-                    Propriedades
+                    Propriedades {readOnly && '(Leitura)'}
                 </h3>
-                <p className="text-xs text-gray-500 mt-1">Editando: {selectedNode.data.label}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                    {readOnly ? 'Visualizando:' : 'Editando:'} {selectedNode.data.label}
+                </p>
             </div>
 
-            <div className="p-4 space-y-6 overflow-y-auto flex-1">
+            <div className={`p-4 space-y-6 overflow-y-auto flex-1 ${readOnly ? 'pointer-events-none opacity-70' : ''}`}>
                 {/* Shapes */}
                 <div>
                     <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Formato</label>
@@ -263,14 +271,16 @@ const NodeInspector = ({ selectedNode }: { selectedNode: Node }) => {
                 </div>
             </div>
 
-            <div className="p-4 bg-gray-50 border-t border-gray-200">
-                <button
-                    onClick={() => setNodes((nds) => nds.filter((n) => n.id !== selectedNode.id))}
-                    className="w-full py-2 px-4 bg-red-50 text-red-600 hover:bg-red-100 rounded-md text-sm font-medium transition-colors border border-red-200"
-                >
-                    Excluir Elemento
-                </button>
-            </div>
+            {!readOnly && (
+                <div className="p-4 bg-gray-50 border-t border-gray-200">
+                    <button
+                        onClick={() => setNodes((nds) => nds.filter((n) => n.id !== selectedNode.id))}
+                        className="w-full py-2 px-4 bg-red-50 text-red-600 hover:bg-red-100 rounded-md text-sm font-medium transition-colors border border-red-200"
+                    >
+                        Excluir Elemento
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
@@ -371,9 +381,19 @@ const ToolsSidebar = () => {
 };
 
 // Refactored Inner Component to hold all state
-const EditorContent = ({ initialFlowData, onFlowChange }: FlowEditorProps) => {
+const EditorContent = ({ initialFlowData, onFlowChange, readOnly }: FlowEditorProps) => {
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
-    const [nodes, setNodes, onNodesChange] = useNodesState(initialFlowData?.nodes || initialNodes);
+    const [nodes, setNodes, onNodesChange] = useNodesState(
+        (initialFlowData?.nodes || initialNodes).map((n: any) => ({
+            ...n,
+            data: { ...n.data, readOnly } // Pass readOnly to node data for CustomNode
+        }))
+    );
+    // When readOnly changes, update all nodes data
+    useEffect(() => {
+        setNodes((nds) => nds.map(n => ({ ...n, data: { ...n.data, readOnly } })));
+    }, [readOnly, setNodes]);
+
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlowData?.edges || []);
     const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
     const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
@@ -437,9 +457,16 @@ const EditorContent = ({ initialFlowData, onFlowChange }: FlowEditorProps) => {
         <div className="flex h-full w-full">
             <aside className="w-72 bg-white border-r border-gray-200 flex flex-col h-full shadow-sm z-10 transition-all shrink-0">
                 {selectedNodeObject ? (
-                    <NodeInspector selectedNode={selectedNodeObject} />
+                    <NodeInspector selectedNode={selectedNodeObject} readOnly={readOnly} />
                 ) : (
-                    <ToolsSidebar />
+                    readOnly ? (
+                        <div className="flex flex-col h-full items-center justify-center p-6 text-center text-gray-500">
+                            <p>Modo de visualização.</p>
+                            <p className="text-xs mt-2">Selecione um elemento para ver detalhes.</p>
+                        </div>
+                    ) : (
+                        <ToolsSidebar />
+                    )
                 )}
             </aside>
 
@@ -449,14 +476,17 @@ const EditorContent = ({ initialFlowData, onFlowChange }: FlowEditorProps) => {
                     edges={edges}
                     onNodesChange={onNodesChange}
                     onEdgesChange={onEdgesChange}
-                    onConnect={onConnect}
+                    onConnect={readOnly ? undefined : onConnect}
                     onInit={setReactFlowInstance}
-                    onDrop={onDrop}
-                    onDragOver={onDragOver}
+                    onDrop={readOnly ? undefined : onDrop}
+                    onDragOver={readOnly ? undefined : onDragOver}
                     nodeTypes={nodeTypes}
                     fitView
                     attributionPosition="bottom-left"
-                    deleteKeyCode={['Backspace', 'Delete']}
+                    deleteKeyCode={readOnly ? null : ['Backspace', 'Delete']}
+                    nodesDraggable={!readOnly}
+                    nodesConnectable={!readOnly}
+                    elementsSelectable={true}
                 >
                     <Background color="#aaa" gap={16} />
                     <Controls />

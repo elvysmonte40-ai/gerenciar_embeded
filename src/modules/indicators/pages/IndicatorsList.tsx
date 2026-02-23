@@ -6,6 +6,8 @@ import { Plus, Search, Filter, RefreshCw } from 'lucide-react';
 import { indicatorsService } from '../services/indicatorsService';
 import { supabase } from '../../../lib/supabase';
 import type { Indicator, CalculatedEntry } from '../types';
+import { fetchUserPermissions, hasPermission } from '../../../utils/permissions';
+import type { AppPermissions } from '../../../types/dashboard';
 
 export const IndicatorsList: React.FC = () => {
     const [indicators, setIndicators] = useState<(Indicator & { lastEntry: CalculatedEntry | null })[]>([]);
@@ -14,11 +16,20 @@ export const IndicatorsList: React.FC = () => {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedIndicator, setSelectedIndicator] = useState<Indicator | null>(null);
 
+    // Permission State
+    const [permissions, setPermissions] = useState<AppPermissions | null>(null);
+    const [isOrgAdmin, setIsOrgAdmin] = useState(false);
+
     const fetchIndicators = async () => {
         setLoading(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user?.user_metadata?.organization_id) {
+                // Fetch Permissions
+                const perms = await fetchUserPermissions(session.user.id);
+                setPermissions(perms.permissions);
+                setIsOrgAdmin(perms.isOrgAdmin);
+
                 const data = await indicatorsService.getIndicatorsWithPerformance(session.user.user_metadata.organization_id);
                 // @ts-ignore
                 setIndicators(data);
@@ -38,6 +49,9 @@ export const IndicatorsList: React.FC = () => {
         ind.title.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const canCreate = hasPermission(permissions, 'indicators', 'create', isOrgAdmin);
+    const canEdit = hasPermission(permissions, 'indicators', 'edit', isOrgAdmin);
+
     return (
         <div className="space-y-8">
             {/* Header Section */}
@@ -54,13 +68,15 @@ export const IndicatorsList: React.FC = () => {
                     >
                         <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                     </button>
-                    <button
-                        onClick={() => setIsFormOpen(true)}
-                        className="bg-brand text-white text-sm px-4 py-2.5 rounded-lg hover:bg-brand-dark flex items-center gap-2 font-semibold shadow-sm hover:shadow transition-all"
-                    >
-                        <Plus size={18} />
-                        Novo Indicador
-                    </button>
+                    {canCreate && (
+                        <button
+                            onClick={() => setIsFormOpen(true)}
+                            className="bg-brand text-white text-sm px-4 py-2.5 rounded-lg hover:bg-brand-dark flex items-center gap-2 font-semibold shadow-sm hover:shadow transition-all"
+                        >
+                            <Plus size={18} />
+                            Novo Indicador
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -95,6 +111,7 @@ export const IndicatorsList: React.FC = () => {
                             indicator={ind}
                             lastEntry={ind.lastEntry}
                             onClick={() => setSelectedIndicator(ind)}
+                            canEdit={canEdit}
                         />
                     ))}
                 </div>
@@ -113,12 +130,14 @@ export const IndicatorsList: React.FC = () => {
                     ) : (
                         <>
                             <p className="text-text-secondary">Você ainda não criou nenhum indicador.</p>
-                            <button
-                                onClick={() => setIsFormOpen(true)}
-                                className="text-brand text-sm font-medium hover:underline mt-2"
-                            >
-                                Criar meu primeiro indicador
-                            </button>
+                            {canCreate && (
+                                <button
+                                    onClick={() => setIsFormOpen(true)}
+                                    className="text-brand text-sm font-medium hover:underline mt-2"
+                                >
+                                    Criar meu primeiro indicador
+                                </button>
+                            )}
                         </>
                     )}
                 </div>

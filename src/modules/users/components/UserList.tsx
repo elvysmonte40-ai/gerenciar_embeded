@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import UserForm from './UserForm';
+import { fetchUserPermissions, hasPermission } from '../../../utils/permissions';
+import type { AppPermissions } from '../../../types/dashboard';
 
 interface UserProfile {
     id: string;
@@ -35,9 +37,26 @@ export default function UserList() {
     const [totalPages, setTotalPages] = useState(1);
     const ITEMS_PER_PAGE = 10;
 
+    // Permissions State
+    const [permissions, setPermissions] = useState<AppPermissions | null>(null);
+    const [isOrgAdmin, setIsOrgAdmin] = useState(false);
+
+    useEffect(() => {
+        loadPermissions();
+    }, []);
+
     useEffect(() => {
         fetchUsers();
     }, [page]);
+
+    const loadPermissions = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+            const { permissions, isOrgAdmin } = await fetchUserPermissions(session.user.id);
+            setPermissions(permissions);
+            setIsOrgAdmin(isOrgAdmin);
+        }
+    };
 
     const fetchUsers = async () => {
         try {
@@ -138,18 +157,20 @@ export default function UserList() {
         <div className="space-y-4">
             <div className="flex justify-between items-center">
                 <h2 className="text-lg font-semibold text-text-primary">Colaboradores</h2>
-                <button
-                    onClick={() => {
-                        setEditingUser(null);
-                        setIsFormOpen(true);
-                    }}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-brand hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand transition-colors"
-                >
-                    <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                    </svg>
-                    Adicionar Usuário
-                </button>
+                {hasPermission(permissions, 'users', 'create', isOrgAdmin) && (
+                    <button
+                        onClick={() => {
+                            setEditingUser(null);
+                            setIsFormOpen(true);
+                        }}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-brand hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand transition-colors"
+                    >
+                        <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                        </svg>
+                        Adicionar Usuário
+                    </button>
+                )}
             </div>
 
             <UserForm
@@ -239,23 +260,27 @@ export default function UserList() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                className="text-brand hover:text-brand-dark"
-                                                title="Editar"
-                                                onClick={() => {
-                                                    setEditingUser(user);
-                                                    setIsFormOpen(true);
-                                                }}
-                                            >
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                            </button>
-                                            <button onClick={() => handleToggleStatus(user.id, user.status)} className="text-red-600 hover:text-red-900" title={user.status === 'active' ? "Inativar" : "Ativar"}>
-                                                {user.status === 'active' ? (
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                                ) : (
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                                                )}
-                                            </button>
+                                            {hasPermission(permissions, 'users', 'edit', isOrgAdmin) && (
+                                                <button
+                                                    className="text-brand hover:text-brand-dark"
+                                                    title="Editar"
+                                                    onClick={() => {
+                                                        setEditingUser(user);
+                                                        setIsFormOpen(true);
+                                                    }}
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                                </button>
+                                            )}
+                                            {hasPermission(permissions, 'users', 'edit', isOrgAdmin) && (
+                                                <button onClick={() => handleToggleStatus(user.id, user.status)} className="text-red-600 hover:text-red-900" title={user.status === 'active' ? "Inativar" : "Ativar"}>
+                                                    {user.status === 'active' ? (
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                    ) : (
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                                    )}
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

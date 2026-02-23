@@ -7,6 +7,7 @@ import { CheckCircle, AlertTriangle, XCircle, Minus, Loader2 } from 'lucide-reac
 
 interface MonthlyEntryGridProps {
     indicator: Indicator;
+    canEdit?: boolean;
 }
 
 const MONTHS = [
@@ -14,7 +15,7 @@ const MONTHS = [
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-export const MonthlyEntryGrid: React.FC<MonthlyEntryGridProps> = ({ indicator }) => {
+export const MonthlyEntryGrid: React.FC<MonthlyEntryGridProps> = ({ indicator, canEdit = false }) => {
     const [year, setYear] = useState(new Date().getFullYear());
     const [entries, setEntries] = useState<Record<number, Partial<IndicatorEntry>>>({});
     const [loading, setLoading] = useState(false);
@@ -245,7 +246,7 @@ export const MonthlyEntryGrid: React.FC<MonthlyEntryGridProps> = ({ indicator })
                     placeholder="-"
                     onChange={(e) => handleChange(monthNum, fieldName, e.target.value)}
                     onBlur={(e) => handleBlur(monthNum, fieldName, e.target.value)}
-                    disabled={loading}
+                    disabled={loading || !canEdit}
                 />
                 {saving === saveKey && (
                     <div className="absolute right-1 top-1/2 -translate-y-1/2">
@@ -328,7 +329,7 @@ export const MonthlyEntryGrid: React.FC<MonthlyEntryGridProps> = ({ indicator })
                                                 placeholder="—"
                                                 onChange={(e) => !isNumDen && handleChange(monthNum, 'budget', e.target.value)}
                                                 onBlur={(e) => !isNumDen && handleBlur(monthNum, 'budget', e.target.value)}
-                                                disabled={loading || isNumDen}
+                                                disabled={loading || isNumDen || !canEdit}
                                                 readOnly={isNumDen}
                                             />
                                             {saving === `${monthNum}-budget` && !isNumDen && (
@@ -351,7 +352,7 @@ export const MonthlyEntryGrid: React.FC<MonthlyEntryGridProps> = ({ indicator })
                                                 placeholder="—"
                                                 onChange={(e) => !isNumDen && handleChange(monthNum, 'target', e.target.value)}
                                                 onBlur={(e) => !isNumDen && handleBlur(monthNum, 'target', e.target.value)}
-                                                disabled={loading || isNumDen}
+                                                disabled={loading || isNumDen || !canEdit}
                                                 readOnly={isNumDen}
                                             />
                                             {saving === `${monthNum}-target` && !isNumDen && (
@@ -374,7 +375,7 @@ export const MonthlyEntryGrid: React.FC<MonthlyEntryGridProps> = ({ indicator })
                                                 placeholder="—"
                                                 onChange={(e) => !isNumDen && handleChange(monthNum, 'realized', e.target.value)}
                                                 onBlur={(e) => !isNumDen && handleBlur(monthNum, 'realized', e.target.value)}
-                                                disabled={loading || isNumDen}
+                                                disabled={loading || isNumDen || !canEdit}
                                                 readOnly={isNumDen}
                                             />
                                             {saving === `${monthNum}-realized` && !isNumDen && (

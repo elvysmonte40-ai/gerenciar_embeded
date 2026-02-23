@@ -7,10 +7,11 @@ interface IndicatorCardProps {
     indicator: Indicator;
     lastEntry?: CalculatedEntry | null;
     onClick?: () => void;
+    canEdit?: boolean;
 }
 
 
-export const IndicatorCard: React.FC<IndicatorCardProps> = ({ indicator, lastEntry, onClick }) => {
+export const IndicatorCard: React.FC<IndicatorCardProps> = ({ indicator, lastEntry, onClick, canEdit = false }) => {
     const statusConfig = {
         GREEN: {
             bg: 'bg-emerald-50',
@@ -82,15 +83,18 @@ export const IndicatorCard: React.FC<IndicatorCardProps> = ({ indicator, lastEnt
             <div className="absolute top-0 left-0 w-full h-1 bg-transparent group-hover:bg-brand transition-colors"></div>
 
             {/* Edit Icon - Navigates to details page */}
-            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                <a
-                    href={`/indicators/${indicator.id}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="p-1.5 bg-white border border-gray-200 rounded-md shadow-sm text-gray-400 hover:text-brand hover:border-brand-light flex items-center justify-center transition-colors"
-                >
-                    <Edit size={14} />
-                </a>
-            </div>
+            {/* Edit Icon - Navigates to details page */}
+            {canEdit && (
+                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    <a
+                        href={`/indicators/${indicator.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1.5 bg-white border border-gray-200 rounded-md shadow-sm text-gray-400 hover:text-brand hover:border-brand-light flex items-center justify-center transition-colors"
+                    >
+                        <Edit size={14} />
+                    </a>
+                </div>
+            )}
 
             <div className="flex justify-between items-start pt-2">
                 <div className="flex-1 pr-2">

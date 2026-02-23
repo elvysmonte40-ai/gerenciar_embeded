@@ -4,6 +4,7 @@ import { supabase } from '../../../../lib/supabase';
 import { StatusBadge } from '../shared/StatusBadge';
 import type { ProcessWithDetails } from '../../../../types/processes';
 import { Plus, Search, FileText, ArrowRight, Pencil } from 'lucide-react';
+import type { AppPermissions } from '../../../../types/dashboard';
 
 interface ProcessListProps {
     organizationId?: string;
@@ -14,27 +15,38 @@ export const ProcessList: React.FC<ProcessListProps> = ({ organizationId }) => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
+    // Permission State
+    const [permissions, setPermissions] = useState<AppPermissions | null>(null);
+    const [isOrgAdmin, setIsOrgAdmin] = useState(false);
+
     // Todo: Get departments for filter dropdown
 
     useEffect(() => {
-        loadProcesses();
+        loadData();
     }, [organizationId, searchTerm]);
 
-    const loadProcesses = async () => {
+    const loadData = async () => {
         setLoading(true);
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            // Fetch Permissions
+            const { fetchUserPermissions, hasPermission } = await import('../../../../utils/permissions');
+            const perms = await fetchUserPermissions(session.user.id);
+            setPermissions(perms.permissions);
+            setIsOrgAdmin(perms.isOrgAdmin);
+
+            // Fetch Processes
             let orgId = organizationId;
 
             if (!orgId) {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session) {
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('organization_id')
-                        .eq('id', session.user.id)
-                        .single();
-                    orgId = profile?.organization_id;
-                }
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('organization_id')
+                    .eq('id', session.user.id)
+                    .single();
+                orgId = profile?.organization_id;
             }
 
             if (!orgId) {
@@ -47,11 +59,27 @@ export const ProcessList: React.FC<ProcessListProps> = ({ organizationId }) => {
             });
             setProcesses(data);
         } catch (error) {
-            console.error('Error loading processes:', error);
+            console.error('Error loading data:', error);
         } finally {
             setLoading(false);
         }
     };
+
+    // Helper for permissions (since we imported it dynamically above, we need it here too or import at top)
+    // I will add import at top in a separate move or use if logic. 
+    // Actually, let's use the hook/util pattern.
+    // Since I'm replacing the component, I should add imports at the top using multi_replace_file_content or just rely on global? No.
+    // I'll add the checks inline assuming imports are there.
+    // Wait, I am replacing the FUNCTION body. I need to make sure imports are present.
+    // I will use `replace_file_content` for the whole file? No, too big. 
+    // I'll use the existing `hasPermission` if I import it.
+
+    // Let's assume I will add imports in another step or this step if I can target top.
+
+    // ... rest of component
+    // I'll return the modified component logic here.
+
+    // Re-importing hasPermission inside component is ugly.
 
     return (
         <div className="space-y-6">
@@ -69,13 +97,16 @@ export const ProcessList: React.FC<ProcessListProps> = ({ organizationId }) => {
                     />
                 </div>
 
-                <a
-                    href="/processes/novo"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-brand hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand"
-                >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Novo Processo
-                </a>
+                {/* Create Button Permission Check */}
+                {permissions && (isOrgAdmin || permissions.processes.create) && (
+                    <a
+                        href="/processes/novo"
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-brand hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand"
+                    >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Novo Processo
+                    </a>
+                )}
             </div>
 
             {loading ? (
@@ -100,7 +131,11 @@ export const ProcessList: React.FC<ProcessListProps> = ({ organizationId }) => {
                         const displayVersion = process.current_version || latestVersion;
 
                         return (
-                            <div key={process.id} className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-5 flex flex-col h-full">
+                            <div
+                                key={process.id}
+                                className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-5 flex flex-col h-full cursor-pointer"
+                                onClick={() => window.location.href = process.current_version ? `/processes/${process.code || process.id}` : `/processes/${process.id}/editar`}
+                            >
                                 <div className="flex justify-between items-start mb-2">
                                     <span className="text-xs font-mono bg-gray-100 text-gray-600 px-2 py-1 rounded">
                                         {process.code || 'SEM CÓDIGO'}
@@ -151,16 +186,20 @@ export const ProcessList: React.FC<ProcessListProps> = ({ organizationId }) => {
                                         v{displayVersion?.version_number || '1'}
                                     </span>
                                     <div className="flex gap-3">
-                                        <a
-                                            href={`/processes/${process.id}/editar`}
-                                            className="text-gray-500 hover:text-brand font-medium inline-flex items-center"
-                                            title="Editar Processo"
-                                        >
-                                            <Pencil className="h-3 w-3" />
-                                        </a>
+                                        {permissions && (isOrgAdmin || permissions.processes.edit) && (
+                                            <a
+                                                href={`/processes/${process.id}/editar`}
+                                                className="text-gray-500 hover:text-brand font-medium inline-flex items-center"
+                                                title="Editar Processo"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <Pencil className="h-3 w-3" />
+                                            </a>
+                                        )}
                                         <a
                                             href={process.current_version ? `/processes/${process.code || process.id}` : `/processes/${process.id}/editar`}
                                             className="text-brand hover:text-brand-dark font-medium inline-flex items-center"
+                                            onClick={(e) => e.stopPropagation()}
                                         >
                                             Visualizar <ArrowRight className="h-3 w-3 ml-1" />
                                         </a>

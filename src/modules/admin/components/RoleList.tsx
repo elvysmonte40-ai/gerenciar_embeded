@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import type { OrganizationRole } from '../../../types/dashboard';
 import RoleForm from './RoleForm';
+import { fetchUserPermissions, hasPermission } from '../../../utils/permissions';
+import type { AppPermissions } from '../../../types/dashboard';
 
 export default function RoleList() {
     const [roles, setRoles] = useState<OrganizationRole[]>([]);
@@ -9,6 +11,10 @@ export default function RoleList() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedRole, setSelectedRole] = useState<OrganizationRole | null>(null);
     const [dashboardCounts, setDashboardCounts] = useState<Record<string, number>>({});
+
+    // Permission State
+    const [permissions, setPermissions] = useState<AppPermissions | null>(null);
+    const [isOrgAdmin, setIsOrgAdmin] = useState(false);
 
     useEffect(() => {
         fetchRoles();
@@ -19,6 +25,11 @@ export default function RoleList() {
             setLoading(true);
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
+
+            // Fetch Permissions
+            const perms = await fetchUserPermissions(session.user.id);
+            setPermissions(perms.permissions);
+            setIsOrgAdmin(perms.isOrgAdmin);
 
             const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', session.user.id).single();
 
@@ -33,10 +44,6 @@ export default function RoleList() {
                 setRoles(data || []);
 
                 // Fetch counts
-                // Since we can't easily do a join count in one query without a view/function or specific PostgREST syntax that might fail if not configured
-                // We'll just fetch all junction rows for this org's roles.
-                // Or simplified: fetch counts for each role.
-
                 if (data && data.length > 0) {
                     const roleIds = data.map(r => r.id);
                     const { data: junctionData } = await supabase
@@ -101,19 +108,29 @@ export default function RoleList() {
         setIsFormOpen(true);
     };
 
+    // Only allow view? Actually this page is likely admin only anyway.
+    // But let's check organization.manage_settings
+
+    // If not allowed, maybe redirect? 
+    // Usually this component is used in Admin settings page.
+
+    const canManage = hasPermission(permissions, 'organization', 'manage_settings', isOrgAdmin);
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-lg font-medium text-gray-900">Perfis de Acesso</h2>
-                <button
-                    onClick={openCreateModal}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-brand hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand"
-                >
-                    <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                    </svg>
-                    Novo Perfil
-                </button>
+                {canManage && (
+                    <button
+                        onClick={openCreateModal}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-brand hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand"
+                    >
+                        <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                        </svg>
+                        Novo Perfil
+                    </button>
+                )}
             </div>
 
             {loading ? (
@@ -161,26 +178,31 @@ export default function RoleList() {
                                         </td>
                                         <td className="px-6 py-4 text-center whitespace-nowrap">
                                             <button
-                                                onClick={() => handleToggleStatus(role)}
-                                                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${role.is_active ? 'bg-green-500' : 'bg-gray-200'}`}
+                                                onClick={() => canManage && handleToggleStatus(role)}
+                                                disabled={!canManage}
+                                                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${role.is_active ? 'bg-green-500' : 'bg-gray-200'} ${!canManage ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
                                             >
                                                 <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${role.is_active ? 'translate-x-5' : 'translate-x-0'}`}></span>
                                             </button>
                                         </td>
                                         <td className="px-6 py-4 text-right whitespace-nowrap text-sm font-medium">
                                             <div className="flex justify-end gap-3">
-                                                <button
-                                                    onClick={() => handleEdit(role)}
-                                                    className="text-indigo-600 hover:text-indigo-900"
-                                                >
-                                                    Editar
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(role.id)}
-                                                    className="text-red-600 hover:text-red-900"
-                                                >
-                                                    Excluir
-                                                </button>
+                                                {canManage && (
+                                                    <button
+                                                        onClick={() => handleEdit(role)}
+                                                        className="text-indigo-600 hover:text-indigo-900"
+                                                    >
+                                                        Editar
+                                                    </button>
+                                                )}
+                                                {canManage && (
+                                                    <button
+                                                        onClick={() => handleDelete(role.id)}
+                                                        className="text-red-600 hover:text-red-900"
+                                                    >
+                                                        Excluir
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

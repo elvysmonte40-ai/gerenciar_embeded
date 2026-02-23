@@ -4,6 +4,8 @@ import type { ProcessVersionWithRelations, Process } from '../../../../types/pro
 import { StatusBadge } from '../shared/StatusBadge';
 import { Save, ArrowLeft, Play, Layout, List } from 'lucide-react';
 import type { ProcessStep } from '../../../../types/processes';
+import { supabase } from '../../../../lib/supabase';
+import { fetchUserPermissions, hasPermission } from '../../../../utils/permissions';
 
 // Lazy load editors to isolate crashes/import errors
 const StepEditor = React.lazy(() => import('./StepEditor').then(m => ({ default: m.StepEditor })));
@@ -55,6 +57,7 @@ const ProcessEditorInner: React.FC<ProcessEditorProps> = ({ processId }) => {
     const [steps, setSteps] = useState<Partial<ProcessStep>[]>([]);
     const [flowData, setFlowData] = useState<any>(null);
 
+
     useEffect(() => {
         loadEditorData();
     }, [processId]);
@@ -66,6 +69,16 @@ const ProcessEditorInner: React.FC<ProcessEditorProps> = ({ processId }) => {
             return;
         }
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                const { permissions, isOrgAdmin } = await fetchUserPermissions(session.user.id);
+                if (!hasPermission(permissions, 'processes', 'edit', isOrgAdmin)) {
+                    setError("Você não tem permissão para editar processos.");
+                    setLoading(false);
+                    return;
+                }
+            }
+
             console.log("ProcessEditor loading data for:", processId);
             const proc = await ProcessService.getProcessById(processId);
             setProcess(proc);
@@ -228,25 +241,21 @@ const ProcessEditorInner: React.FC<ProcessEditorProps> = ({ processId }) => {
                                 </aside>
                                 <div className="flex-1 p-8 overflow-y-auto h-full scroll-smooth">
                                     <div className="w-full max-w-[95%] mx-auto bg-white rounded-lg shadow-sm min-h-[500px] p-8">
-                                        {version.status === 'draft' ? (
-                                            <StepEditor steps={steps as any} onStepsChange={(newSteps: Partial<ProcessStep>[]) => setSteps(newSteps)} />
-                                        ) : (
-                                            <div className="text-center p-8 text-gray-500">
-                                                Esta versão não pode ser editada.
-                                            </div>
-                                        )}
+                                        <StepEditor
+                                            steps={steps as any}
+                                            onStepsChange={(newSteps: Partial<ProcessStep>[]) => setSteps(newSteps)}
+                                            readOnly={version.status !== 'draft'}
+                                        />
                                     </div>
                                 </div>
                             </div>
                         ) : (
                             <div className="flex-1 bg-slate-50 relative h-full w-full">
-                                {version.status === 'draft' ? (
-                                    <FlowEditor initialFlowData={flowData} onFlowChange={setFlowData} />
-                                ) : (
-                                    <div className="flex items-center justify-center h-full text-gray-500">
-                                        Visualização de fluxo (Leitura)
-                                    </div>
-                                )}
+                                <FlowEditor
+                                    initialFlowData={flowData}
+                                    onFlowChange={setFlowData}
+                                    readOnly={version.status !== 'draft'}
+                                />
                             </div>
                         )}
                     </Suspense>

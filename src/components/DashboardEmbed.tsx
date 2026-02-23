@@ -48,7 +48,7 @@ export const DashboardEmbed: React.FC = () => {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session) throw new Error("Usuário não autenticado");
 
-                const { data: profile } = await supabase.from('profiles').select('organization_id, can_export_data').eq('id', session.user.id).single();
+                const { data: profile } = await supabase.from('profiles').select('organization_id, can_export_data, role, organization_role_id').eq('id', session.user.id).single();
 
                 if (!profile?.organization_id) {
                     throw new Error("Usuário sem organização vinculada.");
@@ -63,13 +63,33 @@ export const DashboardEmbed: React.FC = () => {
                     payload.report_id = targetReportId;
                 } else if (!dashboardId) {
                     // Try to find the "first" dashboard for this org only if no specific ID was requested
-                    const { data: firstDash } = await supabase
+                    let dashboardsQuery = supabase
                         .from('organization_dashboards')
                         .select('workspace_id, report_id')
-                        .eq('organization_id', profile.organization_id)
+                        .eq('organization_id', profile.organization_id);
+
+                    if (profile.role !== 'admin') {
+                        if (profile.organization_role_id) {
+                            const { data: roleDashboards } = await supabase
+                                .from('organization_role_dashboards')
+                                .select('dashboard_id')
+                                .eq('organization_role_id', profile.organization_role_id);
+
+                            if (roleDashboards && roleDashboards.length > 0) {
+                                const allowedIds = roleDashboards.map(d => d.dashboard_id);
+                                dashboardsQuery = dashboardsQuery.in('id', allowedIds);
+                            } else {
+                                dashboardsQuery = dashboardsQuery.eq('id', 'invalid_id_placeholder'); // Force no results
+                            }
+                        } else {
+                            dashboardsQuery = dashboardsQuery.eq('id', 'invalid_id_placeholder'); // Force no results
+                        }
+                    }
+
+                    const { data: firstDash } = await dashboardsQuery
                         .order('created_at', { ascending: true })
                         .limit(1)
-                        .single();
+                        .maybeSingle();
 
                     if (firstDash) {
                         payload.group_id = firstDash.workspace_id;
@@ -140,13 +160,12 @@ export const DashboardEmbed: React.FC = () => {
                             pageNavigation: { visible: false },
                         },
                         // background: models.BackgroundType.Transparent,
-                        extensions: !config.canExportData ? [
+                        commands: !config.canExportData ? [
                             {
-                                command: {
-                                    name: "exportData",
+                                exportData: {
                                     displayOption: models.CommandDisplayOption.Hidden
                                 }
-                            } as any
+                            }
                         ] : undefined,
                     },
                 }}

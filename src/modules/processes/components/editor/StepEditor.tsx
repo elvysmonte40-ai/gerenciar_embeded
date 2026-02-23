@@ -13,13 +13,17 @@ interface JobTitle {
 interface StepEditorProps {
     steps: ProcessStep[];
     onStepsChange: (steps: Partial<ProcessStep>[]) => void;
+    readOnly?: boolean;
 }
 
-const MultiSelectRole: React.FC<{
+interface MultiSelectRoleProps {
     selectedRoles: string[];
     onRolesChange: (roles: string[]) => void;
     availableRoles: JobTitle[];
-}> = ({ selectedRoles, onRolesChange, availableRoles }) => {
+    readOnly?: boolean;
+}
+
+const MultiSelectRole: React.FC<MultiSelectRoleProps> = ({ selectedRoles, onRolesChange, availableRoles, readOnly }) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -37,6 +41,7 @@ const MultiSelectRole: React.FC<{
     }, []);
 
     const toggleRole = (roleTitle: string) => {
+        if (readOnly) return;
         if (selectedRoles.includes(roleTitle)) {
             onRolesChange(selectedRoles.filter(r => r !== roleTitle));
         } else {
@@ -47,33 +52,37 @@ const MultiSelectRole: React.FC<{
     return (
         <div className="relative" ref={containerRef}>
             <div
-                className="mt-1 w-full min-h-[38px] border border-gray-300 rounded-md shadow-sm focus-within:ring-1 focus-within:ring-brand focus-within:border-brand sm:text-sm bg-white cursor-pointer px-2 py-1 flex flex-wrap gap-1 items-center"
-                onClick={() => setIsOpen(!isOpen)}
+                className={`mt-1 w-full min-h-[38px] border border-gray-300 rounded-md shadow-sm sm:text-sm bg-white px-2 py-1 flex flex-wrap gap-1 items-center ${readOnly ? 'bg-gray-50 cursor-default' : 'cursor-pointer focus-within:ring-1 focus-within:ring-brand focus-within:border-brand'}`}
+                onClick={() => !readOnly && setIsOpen(!isOpen)}
             >
                 {selectedRoles.length === 0 && (
-                    <span className="text-gray-400 font-normal">Selecione os cargos...</span>
+                    <span className="text-gray-400 font-normal">Nenhum cargo selecionado</span>
                 )}
                 {selectedRoles.map(role => (
                     <span key={role} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brand/10 text-brand">
                         {role}
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                toggleRole(role);
-                            }}
-                            className="ml-1 text-brand hover:text-brand-dark focus:outline-none"
-                        >
-                            <X className="h-3 w-3" />
-                        </button>
+                        {!readOnly && (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleRole(role);
+                                }}
+                                className="ml-1 text-brand hover:text-brand-dark focus:outline-none"
+                            >
+                                <X className="h-3 w-3" />
+                            </button>
+                        )}
                     </span>
                 ))}
-                <div className="ml-auto pr-1">
-                    <ChevronDown className="h-4 w-4 text-gray-400" />
-                </div>
+                {!readOnly && (
+                    <div className="ml-auto pr-1">
+                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                    </div>
+                )}
             </div>
 
-            {isOpen && (
+            {isOpen && !readOnly && (
                 <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
                     {availableRoles.length === 0 ? (
                         <div className="px-4 py-2 text-gray-500">Nenhum cargo encontrado.</div>
@@ -99,9 +108,13 @@ const MultiSelectRole: React.FC<{
     );
 };
 
-export const StepEditor: React.FC<StepEditorProps> = ({ steps, onStepsChange }) => {
+export const StepEditor: React.FC<StepEditorProps> = ({ steps, onStepsChange, readOnly }) => {
     const [localSteps, setLocalSteps] = useState<Partial<ProcessStep>[]>(steps);
     const [jobTitles, setJobTitles] = useState<JobTitle[]>([]);
+
+    useEffect(() => {
+        setLocalSteps(steps);
+    }, [steps]);
 
     useEffect(() => {
         const fetchJobTitles = async () => {
@@ -126,6 +139,7 @@ export const StepEditor: React.FC<StepEditorProps> = ({ steps, onStepsChange }) 
     }, []);
 
     const handleAddStep = () => {
+        if (readOnly) return;
         const newStep: Partial<ProcessStep> = {
             title: 'Novo Passo',
             order_index: localSteps.length + 1,
@@ -138,6 +152,7 @@ export const StepEditor: React.FC<StepEditorProps> = ({ steps, onStepsChange }) 
     };
 
     const handleUpdateStep = (index: number, field: keyof ProcessStep, value: any) => {
+        if (readOnly) return;
         const updated = [...localSteps];
         updated[index] = { ...updated[index], [field]: value };
         setLocalSteps(updated);
@@ -145,6 +160,7 @@ export const StepEditor: React.FC<StepEditorProps> = ({ steps, onStepsChange }) 
     };
 
     const handleDeleteStep = (index: number) => {
+        if (readOnly) return;
         const updated = localSteps.filter((_, i) => i !== index).map((s, i) => ({
             ...s,
             order_index: i + 1 // Re-index
@@ -156,25 +172,27 @@ export const StepEditor: React.FC<StepEditorProps> = ({ steps, onStepsChange }) 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">Passos do Processo</h3>
-                <button
-                    onClick={handleAddStep}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand bg-brand/10 rounded-md hover:bg-brand/20 transition-colors"
-                >
-                    <Plus className="h-4 w-4" /> Adicionar Passo
-                </button>
+                <h3 className="text-lg font-medium">Passos do Processo {readOnly && '(Leitura)'}</h3>
+                {!readOnly && (
+                    <button
+                        onClick={handleAddStep}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand bg-brand/10 rounded-md hover:bg-brand/20 transition-colors"
+                    >
+                        <Plus className="h-4 w-4" /> Adicionar Passo
+                    </button>
+                )}
             </div>
 
             <div className="space-y-4">
                 {localSteps.length === 0 ? (
                     <div className="text-center p-8 border-2 border-dashed border-gray-200 rounded-lg text-gray-500">
-                        Nenhum passo definido. Clique em "Adicionar Passo" para começar.
+                        {readOnly ? 'Nenhum passo definido.' : 'Nenhum passo definido. Clique em "Adicionar Passo" para começar.'}
                     </div>
                 ) : (
                     localSteps.map((step, index) => (
                         <div key={index} id={`step-${index}`} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm relative group">
                             <div className="flex gap-4 items-start">
-                                <div className="mt-2 text-gray-400 cursor-move">
+                                <div className={`mt-2 text-gray-400 ${!readOnly ? 'cursor-move' : ''}`}>
                                     <GripVertical className="h-5 w-5" />
                                 </div>
                                 <div className="flex-1 space-y-4">
@@ -183,9 +201,10 @@ export const StepEditor: React.FC<StepEditorProps> = ({ steps, onStepsChange }) 
                                             <label className="block text-xs font-medium text-gray-500 uppercase">Título</label>
                                             <input
                                                 type="text"
-                                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-brand focus:border-brand sm:text-sm"
+                                                className={`mt-1 block w-full border-gray-300 rounded-md shadow-sm sm:text-sm ${readOnly ? 'bg-gray-50 cursor-default' : 'focus:ring-brand focus:border-brand'}`}
                                                 value={step.title || ''}
-                                                onChange={(e) => handleUpdateStep(index, 'title', e.target.value)}
+                                                onChange={(e) => !readOnly && handleUpdateStep(index, 'title', e.target.value)}
+                                                readOnly={readOnly}
                                             />
                                         </div>
                                         <div>
@@ -194,29 +213,34 @@ export const StepEditor: React.FC<StepEditorProps> = ({ steps, onStepsChange }) 
                                                 selectedRoles={step.role_responsible ? step.role_responsible.split(',').map(s => s.trim()).filter(Boolean) : []}
                                                 onRolesChange={(roles) => handleUpdateStep(index, 'role_responsible', roles.join(', '))}
                                                 availableRoles={jobTitles}
+                                                readOnly={readOnly}
                                             />
                                         </div>
                                     </div>
 
                                     <div>
                                         <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Descrição Detalhada</label>
-                                        <div className="bg-white">
+                                        <div className={`bg-white ${readOnly ? 'opacity-70 pointer-events-none' : ''}`}>
                                             <ReactQuill
-                                                theme="snow"
+                                                theme={readOnly ? "bubble" : "snow"}
                                                 value={step.description_html || ''}
-                                                onChange={(val) => handleUpdateStep(index, 'description_html', val)}
-                                                className="h-96 mb-12" // Increased height for better editing experience
+                                                onChange={(val) => !readOnly && handleUpdateStep(index, 'description_html', val)}
+                                                readOnly={readOnly}
+                                                className={`h-96 ${readOnly ? 'mb-0' : 'mb-12'}`}
+                                                modules={{ toolbar: !readOnly }}
                                             />
                                         </div>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => handleDeleteStep(index)}
-                                    className="text-gray-400 hover:text-red-500 p-1"
-                                    title="Remover passo"
-                                >
-                                    <Trash className="h-5 w-5" />
-                                </button>
+                                {!readOnly && (
+                                    <button
+                                        onClick={() => handleDeleteStep(index)}
+                                        className="text-gray-400 hover:text-red-500 p-1"
+                                        title="Remover passo"
+                                    >
+                                        <Trash className="h-5 w-5" />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))

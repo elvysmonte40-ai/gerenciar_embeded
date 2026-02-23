@@ -149,11 +149,15 @@ export default function DashboardSidebar() {
 
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('organization_id')
+                    .select('organization_id, role, organization_role_id')
                     .eq('id', session.user.id)
                     .single();
 
                 if (!profile?.organization_id) return;
+
+                if (profile.role === 'admin') {
+                    setIsAdmin(true);
+                }
 
                 // Fetch Menus
                 const { data: menusData, error: menusError } = await supabase
@@ -165,32 +169,47 @@ export default function DashboardSidebar() {
 
                 if (menusError) throw menusError;
 
-                // Fetch Dashboards
-                const { data: dashboardsData, error: dashboardsError } = await supabase
+                let dashboardsQuery = supabase
                     .from('organization_dashboards')
                     .select('id, name, menu_id')
                     .eq('organization_id', profile.organization_id);
 
-                if (dashboardsError) throw dashboardsError;
+                let allowedDashboardsData: any[] = [];
+                let shouldFetchDashboards = true;
+
+                if (profile.role !== 'admin') {
+                    if (profile.organization_role_id) {
+                        const { data: roleDashboards } = await supabase
+                            .from('organization_role_dashboards')
+                            .select('dashboard_id')
+                            .eq('organization_role_id', profile.organization_role_id);
+
+                        if (roleDashboards && roleDashboards.length > 0) {
+                            const allowedIds = roleDashboards.map(d => d.dashboard_id);
+                            dashboardsQuery = dashboardsQuery.in('id', allowedIds);
+                        } else {
+                            shouldFetchDashboards = false; // Tem perfil, mas sem dashboards assinalados
+                        }
+                    } else {
+                        shouldFetchDashboards = false; // Não tem perfil
+                    }
+                }
+
+                // Fetch Dashboards se for admin ou se tiver acesso a algum
+                if (shouldFetchDashboards) {
+                    const { data: dashboardsData, error: dashboardsError } = await dashboardsQuery;
+                    if (dashboardsError) throw dashboardsError;
+                    allowedDashboardsData = dashboardsData;
+                }
 
                 // Group dashboards by menu
                 const structuredMenus: Menu[] = menusData.map((menu: any) => ({
                     ...menu,
-                    dashboards: dashboardsData.filter((d: any) => d.menu_id === menu.id)
-                })).filter(menu => menu.dashboards.length > 0);
+                    dashboards: allowedDashboardsData.filter((d: any) => d.menu_id === menu.id)
+                })).filter((menu: any) => menu.dashboards.length > 0);
 
                 setMenus(structuredMenus);
 
-                // Check Admin
-                const { data: profileRole } = await supabase
-                    .from('profiles')
-                    .select('role')
-                    .eq('id', session.user.id)
-                    .single();
-
-                if (profileRole?.role === 'admin') {
-                    setIsAdmin(true);
-                }
             } catch (error) {
                 console.error("Error fetching sidebar data:", error);
             } finally {
@@ -228,22 +247,7 @@ export default function DashboardSidebar() {
 
             <div className={`flex flex-col h-full py-4 ${isCollapsed ? 'px-2 items-center' : 'px-4'} space-y-6 overflow-y-auto overflow-x-hidden`}>
 
-                {/* Default / Home Link */}
-                <div className="w-full">
-                    <a
-                        href="/dashboard"
-                        title={isCollapsed ? "Visão Geral" : ""}
-                        className={`group flex items-center ${isCollapsed ? 'justify-center p-2' : 'px-3 py-2'} text-sm font-medium rounded-md transition-colors ${!currentId
-                            ? 'bg-white text-brand border border-gray-200 shadow-sm'
-                            : 'text-text-secondary hover:bg-gray-100 hover:text-text-primary'
-                            }`}
-                    >
-                        <svg className={`${isCollapsed ? 'h-6 w-6' : 'mr-3 h-5 w-5'} shrink-0 ${!currentId ? 'text-brand' : 'text-gray-400 group-hover:text-gray-500'}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                        </svg>
-                        {!isCollapsed && <span>Visão Geral</span>}
-                    </a>
-                </div>
+
 
                 {/* Dynamic Menus */}
                 {menus.map(menu => (

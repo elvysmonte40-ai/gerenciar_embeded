@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../../lib/supabase';
 import { ProcessService } from '../../services';
 import type { Database } from '../../../../types/supabase';
+import { fetchUserPermissions, hasPermission } from '../../../../utils/permissions';
 
 type Department = Database['public']['Tables']['departments']['Row'];
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -22,6 +23,13 @@ export const ProcessCreate: React.FC = () => {
         const loadData = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
+
+            // Permission Check
+            const { permissions, isOrgAdmin } = await fetchUserPermissions(session.user.id);
+            if (!hasPermission(permissions, 'processes', 'create', isOrgAdmin)) {
+                window.location.href = '/processes';
+                return;
+            }
 
             const { data: profile } = await supabase
                 .from('profiles')

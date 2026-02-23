@@ -5,6 +5,9 @@ import { indicatorsService } from '../services/indicatorsService';
 import { MonthlyEntryGrid } from '../components/MonthlyEntryGrid';
 import { IndicatorForm } from '../components/IndicatorForm';
 import { ArrowLeft, Edit2, Trash2 } from 'lucide-react';
+import { supabase } from '../../../lib/supabase';
+import { fetchUserPermissions, hasPermission } from '../../../utils/permissions';
+import type { AppPermissions } from '../../../types/dashboard';
 
 interface IndicatorDetailsProps {
     indicatorId: string;
@@ -16,9 +19,20 @@ export const IndicatorDetails: React.FC<IndicatorDetailsProps> = ({ indicatorId 
     const [error, setError] = useState<string | null>(null);
     const [isEditFormOpen, setIsEditFormOpen] = useState(false);
 
-    const fetchIndicator = async () => {
+    // Permission State
+    const [permissions, setPermissions] = useState<AppPermissions | null>(null);
+    const [isOrgAdmin, setIsOrgAdmin] = useState(false);
+
+    const fetchData = async () => {
         setLoading(true);
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                const perms = await fetchUserPermissions(session.user.id);
+                setPermissions(perms.permissions);
+                setIsOrgAdmin(perms.isOrgAdmin);
+            }
+
             const data = await indicatorsService.getIndicator(indicatorId);
             setIndicator(data);
         } catch (err: any) {
@@ -31,7 +45,7 @@ export const IndicatorDetails: React.FC<IndicatorDetailsProps> = ({ indicatorId 
 
     useEffect(() => {
         if (indicatorId) {
-            fetchIndicator();
+            fetchData();
         }
     }, [indicatorId]);
 
@@ -65,6 +79,10 @@ export const IndicatorDetails: React.FC<IndicatorDetailsProps> = ({ indicatorId 
         );
     }
 
+    const canEdit = hasPermission(permissions, 'indicators', 'edit', isOrgAdmin);
+    const canDelete = hasPermission(permissions, 'indicators', 'delete', isOrgAdmin);
+    // For entries, we usually use 'edit' permission on indicators to allow editing values
+
     return (
         <div className="space-y-6">
             {/* Header / Navigation */}
@@ -82,33 +100,37 @@ export const IndicatorDetails: React.FC<IndicatorDetailsProps> = ({ indicatorId 
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => setIsEditFormOpen(true)}
-                        className="p-2 text-gray-500 hover:text-brand hover:bg-gray-100 rounded-md transition-colors"
-                        title="Editar Indicador"
-                    >
-                        <Edit2 size={18} />
-                    </button>
-                    <button
-                        onClick={handleDelete}
-                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                        title="Excluir Indicador"
-                    >
-                        <Trash2 size={18} />
-                    </button>
+                    {canEdit && (
+                        <button
+                            onClick={() => setIsEditFormOpen(true)}
+                            className="p-2 text-gray-500 hover:text-brand hover:bg-gray-100 rounded-md transition-colors"
+                            title="Editar Indicador"
+                        >
+                            <Edit2 size={18} />
+                        </button>
+                    )}
+                    {canDelete && (
+                        <button
+                            onClick={handleDelete}
+                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                            title="Excluir Indicador"
+                        >
+                            <Trash2 size={18} />
+                        </button>
+                    )}
                 </div>
             </div>
 
             {/* Main Content - Monthly Grid */}
             <div className="mt-8">
-                <MonthlyEntryGrid indicator={indicator} />
+                <MonthlyEntryGrid indicator={indicator} canEdit={canEdit} />
             </div>
 
             {/* Edit Modal */}
             <IndicatorForm
                 isOpen={isEditFormOpen}
                 onClose={() => setIsEditFormOpen(false)}
-                onSuccess={fetchIndicator}
+                onSuccess={fetchData}
                 indicatorToEdit={indicator}
             />
         </div>
