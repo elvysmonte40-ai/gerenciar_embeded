@@ -18,6 +18,8 @@ export const ProcessService = {
             .select(`
                 *,
                 department:departments(name),
+                viewer_roles:process_viewer_roles(organization_role_id),
+                editor_roles:process_editor_roles(organization_role_id),
                 current_version:process_versions!fk_processes_current_version(*),
                 versions:process_versions!process_versions_process_id_fkey(
                     id, 
@@ -79,6 +81,8 @@ export const ProcessService = {
             .select(`
                 *,
                 department:departments(name),
+                viewer_roles:process_viewer_roles(organization_role_id),
+                editor_roles:process_editor_roles(organization_role_id),
                 current_version:process_versions!fk_processes_current_version(*)
             `)
             .eq('id', id)
@@ -94,6 +98,8 @@ export const ProcessService = {
             .select(`
                 *,
                 department:departments(name),
+                viewer_roles:process_viewer_roles(organization_role_id),
+                editor_roles:process_editor_roles(organization_role_id),
                 current_version:process_versions!fk_processes_current_version(*)
             `)
             .eq('code', code)
@@ -104,7 +110,7 @@ export const ProcessService = {
         return data as ProcessWithDetails;
     },
 
-    async createProcess(processData: Partial<Process>) {
+    async createProcess(processData: Partial<Process>, viewerRoleIds?: string[], editorRoleIds?: string[]) {
         // 1. Create Process
         const { data: process, error: processError } = await supabase
             .from('processes')
@@ -113,6 +119,15 @@ export const ProcessService = {
             .single();
 
         if (processError) throw processError;
+
+        // 1.5. Save Viewer and Editor Roles
+        if (viewerRoleIds && viewerRoleIds.length > 0) {
+            await this.saveProcessViewerRoles(process.id, viewerRoleIds);
+        }
+
+        if (editorRoleIds && editorRoleIds.length > 0) {
+            await this.saveProcessEditorRoles(process.id, editorRoleIds);
+        }
 
         // 2. Create Initial Draft Version (v1)
         const { data: version, error: versionError } = await supabase
@@ -145,6 +160,70 @@ export const ProcessService = {
 
         if (error) throw error;
         return data;
+    },
+
+    async saveProcessViewerRoles(processId: string, roleIds: string[]) {
+        // Delete existing
+        await supabase
+            .from('process_viewer_roles')
+            .delete()
+            .eq('process_id', processId);
+
+        // Insert new
+        if (roleIds.length > 0) {
+            const inserts = roleIds.map(roleId => ({
+                process_id: processId,
+                organization_role_id: roleId
+            }));
+
+            const { error } = await supabase
+                .from('process_viewer_roles')
+                .insert(inserts);
+
+            if (error) throw error;
+        }
+    },
+
+    async getProcessViewerRoles(processId: string) {
+        const { data, error } = await supabase
+            .from('process_viewer_roles')
+            .select('organization_role_id')
+            .eq('process_id', processId);
+
+        if (error) throw error;
+        return data.map(r => r.organization_role_id);
+    },
+
+    async saveProcessEditorRoles(processId: string, roleIds: string[]) {
+        // Delete existing
+        await supabase
+            .from('process_editor_roles')
+            .delete()
+            .eq('process_id', processId);
+
+        // Insert new
+        if (roleIds.length > 0) {
+            const inserts = roleIds.map(roleId => ({
+                process_id: processId,
+                organization_role_id: roleId
+            }));
+
+            const { error } = await supabase
+                .from('process_editor_roles')
+                .insert(inserts);
+
+            if (error) throw error;
+        }
+    },
+
+    async getProcessEditorRoles(processId: string) {
+        const { data, error } = await supabase
+            .from('process_editor_roles')
+            .select('organization_role_id')
+            .eq('process_id', processId);
+
+        if (error) throw error;
+        return data.map(r => r.organization_role_id);
     },
 
     // --- Versions ---

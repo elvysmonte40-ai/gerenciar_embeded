@@ -11,6 +11,8 @@ export type ProcessStatus = ProcessVersion['status']; // 'draft' | 'awaiting_app
 // Extended types for UI with joined data
 export interface ProcessWithDetails extends Process {
     department?: { name: string } | null;
+    viewer_roles?: { organization_role_id: string }[] | null;
+    editor_roles?: { organization_role_id: string }[] | null;
     current_version?: ProcessVersion | null;
     versions?: (Pick<ProcessVersion, 'status' | 'version_number' | 'created_at' | 'id'> & {
         approvers?: {

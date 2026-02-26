@@ -2,7 +2,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { ProcessService } from '../../services';
 import type { ProcessVersionWithRelations, Process } from '../../../../types/processes';
 import { StatusBadge } from '../shared/StatusBadge';
-import { Save, ArrowLeft, Play, Layout, List } from 'lucide-react';
+import { Save, ArrowLeft, Play, Layout, List, Settings } from 'lucide-react';
 import type { ProcessStep } from '../../../../types/processes';
 import { supabase } from '../../../../lib/supabase';
 import { fetchUserPermissions, hasPermission } from '../../../../utils/permissions';
@@ -10,6 +10,7 @@ import { fetchUserPermissions, hasPermission } from '../../../../utils/permissio
 // Lazy load editors to isolate crashes/import errors
 const StepEditor = React.lazy(() => import('./StepEditor').then(m => ({ default: m.StepEditor })));
 const FlowEditor = React.lazy(() => import('./FlowEditor').then(m => ({ default: m.FlowEditor })));
+import { ProcessSettings } from './ProcessSettings';
 
 interface ProcessEditorProps {
     processId?: string;
@@ -51,11 +52,12 @@ const ProcessEditorInner: React.FC<ProcessEditorProps> = ({ processId }) => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'flow' | 'steps'>('steps');
+    const [activeTab, setActiveTab] = useState<'flow' | 'steps' | 'settings'>('steps');
 
     // Local State for manipulation
     const [steps, setSteps] = useState<Partial<ProcessStep>[]>([]);
     const [flowData, setFlowData] = useState<any>(null);
+    const [canEdit, setCanEdit] = useState(false);
 
 
     useEffect(() => {
@@ -69,19 +71,34 @@ const ProcessEditorInner: React.FC<ProcessEditorProps> = ({ processId }) => {
             return;
         }
         try {
+            const proc = await ProcessService.getProcessById(processId);
+            setProcess(proc);
+
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
                 const { permissions, isOrgAdmin } = await fetchUserPermissions(session.user.id);
-                if (!hasPermission(permissions, 'processes', 'edit', isOrgAdmin)) {
-                    setError("Você não tem permissão para editar processos.");
-                    setLoading(false);
-                    return;
+                const hasGlobalEdit = hasPermission(permissions, 'processes', 'edit', isOrgAdmin);
+
+                let hasSpecificEdit = false;
+                if (!hasGlobalEdit) {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('organization_role_id')
+                        .eq('id', session.user.id)
+                        .single();
+
+                    if (profile?.organization_role_id) {
+                        const editorRoles = proc.editor_roles || [];
+                        hasSpecificEdit = editorRoles.some(r => r.organization_role_id === profile.organization_role_id);
+                    }
+                }
+
+                if (!hasGlobalEdit && !hasSpecificEdit) {
+                    setCanEdit(false);
+                } else {
+                    setCanEdit(true);
                 }
             }
-
-            console.log("ProcessEditor loading data for:", processId);
-            const proc = await ProcessService.getProcessById(processId);
-            setProcess(proc);
 
             const versions = await ProcessService.getVersions(processId);
             if (versions.length > 0) {
@@ -180,9 +197,15 @@ const ProcessEditorInner: React.FC<ProcessEditorProps> = ({ processId }) => {
                             >
                                 <Layout className="h-4 w-4" /> Fluxo
                             </button>
+                            <button
+                                onClick={() => setActiveTab('settings')}
+                                className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-2 transition-colors ${activeTab === 'settings' ? 'bg-white shadow-sm text-brand' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                <Settings className="h-4 w-4" /> Configurações
+                            </button>
                         </div>
 
-                        {version.status === 'draft' && (
+                        {(version.status === 'draft' && canEdit && activeTab !== 'settings') && (
                             <>
                                 <button
                                     onClick={handleSave}
@@ -244,17 +267,26 @@ const ProcessEditorInner: React.FC<ProcessEditorProps> = ({ processId }) => {
                                         <StepEditor
                                             steps={steps as any}
                                             onStepsChange={(newSteps: Partial<ProcessStep>[]) => setSteps(newSteps)}
-                                            readOnly={version.status !== 'draft'}
+                                            readOnly={version.status !== 'draft' || !canEdit}
                                         />
                                     </div>
                                 </div>
                             </div>
-                        ) : (
+                        ) : activeTab === 'flow' ? (
                             <div className="flex-1 bg-slate-50 relative h-full w-full">
                                 <FlowEditor
                                     initialFlowData={flowData}
                                     onFlowChange={setFlowData}
-                                    readOnly={version.status !== 'draft'}
+                                    readOnly={version.status !== 'draft' || !canEdit}
+                                />
+                            </div>
+                        ) : (
+                            <div className="flex-1 bg-white overflow-y-auto h-full w-full">
+                                <ProcessSettings
+                                    processId={process.id}
+                                    process={process}
+                                    readOnly={version.status !== 'draft' || !canEdit}
+                                    onUpdate={(updatedData) => setProcess({ ...process, ...updatedData })}
                                 />
                             </div>
                         )}

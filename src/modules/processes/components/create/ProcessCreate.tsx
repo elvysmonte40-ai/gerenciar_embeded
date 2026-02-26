@@ -6,6 +6,7 @@ import { fetchUserPermissions, hasPermission } from '../../../../utils/permissio
 
 type Department = Database['public']['Tables']['departments']['Row'];
 type Profile = Database['public']['Tables']['profiles']['Row'];
+type OrgRole = Database['public']['Tables']['organization_roles']['Row'];
 
 export const ProcessCreate: React.FC = () => {
     const [title, setTitle] = useState('');
@@ -15,7 +16,10 @@ export const ProcessCreate: React.FC = () => {
 
     const [departments, setDepartments] = useState<Department[]>([]);
     const [users, setUsers] = useState<Profile[]>([]);
+    const [roles, setRoles] = useState<OrgRole[]>([]);
     const [selectedApprovers, setSelectedApprovers] = useState<string[]>([]);
+    const [selectedViewerRoles, setSelectedViewerRoles] = useState<string[]>([]);
+    const [selectedEditorRoles, setSelectedEditorRoles] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -60,6 +64,16 @@ export const ProcessCreate: React.FC = () => {
                     .order('full_name');
 
                 if (orgUsers) setUsers(orgUsers);
+
+                // Load Org Roles
+                const { data: orgRoles } = await supabase
+                    .from('organization_roles')
+                    .select('*')
+                    .eq('organization_id', profile.organization_id)
+                    .eq('is_active', true)
+                    .order('name');
+
+                if (orgRoles) setRoles(orgRoles);
             }
         };
         loadData();
@@ -84,7 +98,7 @@ export const ProcessCreate: React.FC = () => {
                 department_id: departmentId || null,
                 organization_id: profile.organization_id,
                 created_by: session.user.id
-            });
+            }, selectedViewerRoles, selectedEditorRoles);
 
             // Add Approvers
             if (selectedApprovers.length > 0) {
@@ -210,6 +224,82 @@ export const ProcessCreate: React.FC = () => {
                     </div>
                     <p className="mt-1 text-xs text-gray-500">
                         Selecione quem será responsável por aprovar as versões deste processo.
+                    </p>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Perfis que podem visualizar este processo
+                    </label>
+                    <div className="border border-gray-300 rounded-md shadow-sm max-h-48 overflow-y-auto p-2 bg-gray-50">
+                        {roles.length > 0 ? (
+                            <div className="space-y-2">
+                                {roles.map(role => (
+                                    <label key={role.id} className="flex items-center space-x-3 p-2 hover:bg-white rounded cursor-pointer transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            value={role.id}
+                                            checked={selectedViewerRoles.includes(role.id)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedViewerRoles([...selectedViewerRoles, role.id]);
+                                                } else {
+                                                    setSelectedViewerRoles(selectedViewerRoles.filter(id => id !== role.id));
+                                                }
+                                            }}
+                                            className="h-4 w-4 text-brand focus:ring-brand border-gray-300 rounded"
+                                        />
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-medium text-gray-900">{role.name}</span>
+                                            {role.description && <span className="text-xs text-gray-500">{role.description}</span>}
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-gray-500 p-2">Nenhum perfil encontrado na organização.</p>
+                        )}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                        Se nenhum perfil for selecionado, o processo será visível para todos da organização. Administradores sempre terão acesso.
+                    </p>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Perfis que podem editar este processo
+                    </label>
+                    <div className="border border-gray-300 rounded-md shadow-sm max-h-48 overflow-y-auto p-2 bg-gray-50">
+                        {roles.length > 0 ? (
+                            <div className="space-y-2">
+                                {roles.map(role => (
+                                    <label key={`editor-${role.id}`} className="flex items-center space-x-3 p-2 hover:bg-white rounded cursor-pointer transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            value={role.id}
+                                            checked={selectedEditorRoles.includes(role.id)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedEditorRoles([...selectedEditorRoles, role.id]);
+                                                } else {
+                                                    setSelectedEditorRoles(selectedEditorRoles.filter(id => id !== role.id));
+                                                }
+                                            }}
+                                            className="h-4 w-4 text-brand focus:ring-brand border-gray-300 rounded"
+                                        />
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-medium text-gray-900">{role.name}</span>
+                                            {role.description && <span className="text-xs text-gray-500">{role.description}</span>}
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-gray-500 p-2">Nenhum perfil encontrado na organização.</p>
+                        )}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                        Selecione os perfis que terão permissão para editar este processo (além dos administradores e de quem já possui permissão global).
                     </p>
                 </div>
 
