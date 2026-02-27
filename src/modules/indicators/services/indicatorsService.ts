@@ -17,25 +17,49 @@ export const indicatorsService = {
     },
 
     async getIndicatorsWithPerformance(organizationId: string) {
-        // Fetch indicators with ALL entries to determine latest
-        // optimize: trigger or view for latest entry would be better, but JS sort is fine for MVP
+        // Fetch indicators with optimized entries query
+        // We only need current year and previous year entries to calculate performance and trend
+        const currentYear = new Date().getFullYear();
+        const previousYear = currentYear - 1;
+
         const { data, error } = await supabase
             .from('indicators')
             .select(`
                 *,
-                indicator_entries (
+                indicator_entries!inner (
                     id, month, year, realized, target, budget
                 )
             `)
             .eq('organization_id', organizationId)
+            .in('indicator_entries.year', [currentYear, previousYear])
             .order('sort_order', { ascending: true })
             .order('title', { ascending: true });
 
-        if (error) throw error;
+        // If inner join fails because there are no entries, fetch them without inner join
+        let indicatorsData = data;
+        if (error || !data || data.length === 0) {
+            const { data: allData, error: allErr } = await supabase
+                .from('indicators')
+                .select(`
+                  *,
+                  indicator_entries (
+                      id, month, year, realized, target, budget
+                  )
+              `)
+                .eq('organization_id', organizationId)
+                .order('sort_order', { ascending: true })
+                .order('title', { ascending: true });
+
+            if (allErr) throw allErr;
+            indicatorsData = allData;
+        }
 
         // Process to find latest entry and calculate metrics
-        const indicatorsWithPerformance = data.map((ind: any) => {
-            const entries = ind.indicator_entries as IndicatorEntry[];
+        const indicatorsWithPerformance = (indicatorsData || []).map((ind: any) => {
+            let entries = (ind.indicator_entries || []) as IndicatorEntry[];
+
+            // Filter entries to only current and previous year if not already done by inner join
+            entries = entries.filter(e => e.year === currentYear || e.year === previousYear);
 
             // Sort by Date Descending
             const sortedEntries = entries.sort((a, b) => {
@@ -66,7 +90,6 @@ export const indicatorsService = {
                     trend
                 };
             }
-
             // If realized or target is missing, we can't calculate performance fully but still return entry data
             else if (lastEntry) {
                 calculatedEntry = {
@@ -80,11 +103,11 @@ export const indicatorsService = {
 
             // Calculate accumulated values for annual indicators
             if (ind.periodicity === 'annual' && calculatedEntry) {
-                const currentYear = lastEntry?.year || new Date().getFullYear(); // Fallback if no entry
-                const currentMonth = lastEntry?.month || new Date().getMonth() + 1;
+                const yearToCalc = lastEntry?.year || currentYear;
+                const monthToCalc = lastEntry?.month || new Date().getMonth() + 1;
 
-                // Filter entries for current year up to current month (or all year for past years)
-                const yearlyEntries = sortedEntries.filter(e => e.year === currentYear && e.month <= currentMonth);
+                // Filter entries for the calculated year up to current month (or all year for past years)
+                const yearlyEntries = sortedEntries.filter(e => e.year === yearToCalc && e.month <= monthToCalc);
 
                 const accumulatedRealized = yearlyEntries.reduce((sum, e) => sum + (e.realized || 0), 0);
                 const accumulatedTarget = yearlyEntries.reduce((sum, e) => sum + (e.target || 0), 0);

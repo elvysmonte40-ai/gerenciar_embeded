@@ -110,11 +110,16 @@ export const ProcessService = {
         return data as ProcessWithDetails;
     },
 
-    async createProcess(processData: Partial<Process>, viewerRoleIds?: string[], editorRoleIds?: string[]) {
+    async createProcess(processData: Partial<Process>, viewerRoleIds?: string[], editorRoleIds?: string[], pools?: string[]) {
         // 1. Create Process
+        const processInsertData: any = { ...processData };
+        if (pools) {
+            processInsertData.pools = pools;
+        }
+
         const { data: process, error: processError } = await supabase
             .from('processes')
-            .insert(processData)
+            .insert(processInsertData)
             .select()
             .single();
 

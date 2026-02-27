@@ -9,8 +9,7 @@ import ReactFlow, {
     MiniMap,
     Handle,
     Position,
-    useReactFlow,
-    useOnSelectionChange
+    useReactFlow
 } from 'reactflow';
 import type { Connection, Edge, Node, ReactFlowInstance, NodeProps } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -34,6 +33,7 @@ interface FlowEditorProps {
     initialFlowData?: any;
     onFlowChange: (flowData: any) => void;
     readOnly?: boolean;
+    availablePools?: string[];
 }
 
 // Map of available icons for nodes
@@ -149,6 +149,11 @@ const CustomNode = ({ id, data, selected }: NodeProps) => {
 
             {/* Content */}
             <div className={`flex flex-col items-center gap-1 ${contentRotation} ${data.shape === 'circle' ? 'p-1' : 'px-4 py-2'}`}>
+                {data.pool && (
+                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-0.5 bg-gray-100/80 px-1.5 py-0.5 rounded">
+                        {data.pool}
+                    </span>
+                )}
                 {Icon && <Icon className="w-5 h-5 opacity-70 mb-1" />}
                 <EditableLabel id={id} label={data.label} readOnly={data.readOnly} />
             </div>
@@ -161,7 +166,7 @@ const nodeTypes = {
 };
 
 // Property Inspector for Selected Node
-const NodeInspector = ({ selectedNode, readOnly }: { selectedNode: Node, readOnly?: boolean }) => {
+const NodeInspector = ({ selectedNode, readOnly, availablePools = [] }: { selectedNode: Node, readOnly?: boolean, availablePools?: string[] }) => {
     const { setNodes } = useReactFlow();
 
     const updateNodeData = (key: string, value: any) => {
@@ -189,6 +194,23 @@ const NodeInspector = ({ selectedNode, readOnly }: { selectedNode: Node, readOnl
             </div>
 
             <div className={`p-4 space-y-6 overflow-y-auto flex-1 ${readOnly ? 'pointer-events-none opacity-70' : ''}`}>
+                {/* Pool (Piscina) Selection */}
+                {availablePools.length > 0 && (
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Piscina (Setor)</label>
+                        <select
+                            value={selectedNode.data.pool || ''}
+                            onChange={(e) => updateNodeData('pool', e.target.value)}
+                            className="w-full border border-gray-300 rounded p-1.5 text-sm outline-none focus:border-blue-400 bg-white"
+                        >
+                            <option value="">Sem piscina</option>
+                            {availablePools.map(pool => (
+                                <option key={pool} value={pool}>{pool}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
                 {/* Shapes */}
                 <div>
                     <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Formato</label>
@@ -381,7 +403,7 @@ const ToolsSidebar = () => {
 };
 
 // Refactored Inner Component to hold all state
-const EditorContent = ({ initialFlowData, onFlowChange, readOnly }: FlowEditorProps) => {
+const EditorContent = ({ initialFlowData, onFlowChange, readOnly, availablePools }: FlowEditorProps) => {
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
     const [nodes, setNodes, onNodesChange] = useNodesState(
         (initialFlowData?.nodes || initialNodes).map((n: any) => ({
@@ -396,15 +418,8 @@ const EditorContent = ({ initialFlowData, onFlowChange, readOnly }: FlowEditorPr
 
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlowData?.edges || []);
     const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
-    const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
 
     const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
-
-    useOnSelectionChange({
-        onChange: ({ nodes }) => {
-            setSelectedNodes(nodes.map((node) => node.id));
-        },
-    });
 
     useEffect(() => {
         if (onFlowChange) {
@@ -451,13 +466,13 @@ const EditorContent = ({ initialFlowData, onFlowChange, readOnly }: FlowEditorPr
         [reactFlowInstance, setNodes]
     );
 
-    const selectedNodeObject = nodes.find((n) => selectedNodes.includes(n.id));
+    const selectedNodeObject = nodes.find((n) => n.selected);
 
     return (
         <div className="flex h-full w-full">
             <aside className="w-72 bg-white border-r border-gray-200 flex flex-col h-full shadow-sm z-10 transition-all shrink-0">
                 {selectedNodeObject ? (
-                    <NodeInspector selectedNode={selectedNodeObject} readOnly={readOnly} />
+                    <NodeInspector selectedNode={selectedNodeObject} readOnly={readOnly} availablePools={availablePools} />
                 ) : (
                     readOnly ? (
                         <div className="flex flex-col h-full items-center justify-center p-6 text-center text-gray-500">

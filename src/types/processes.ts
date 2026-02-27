@@ -1,7 +1,8 @@
 import type { Database } from './supabase';
 
-export type Process = Database['public']['Tables']['processes']['Row'];
-export type ProcessVersion = Database['public']['Tables']['process_versions']['Row'];
+export type Process = Database['public']['Tables']['processes']['Row'] & {
+    pools?: string[] | null;
+};export type ProcessVersion = Database['public']['Tables']['process_versions']['Row'];
 export type ProcessStep = Database['public']['Tables']['process_steps']['Row'];
 export type ProcessAttachment = Database['public']['Tables']['process_attachments']['Row'];
 export type ProcessApprover = Database['public']['Tables']['process_version_approvers']['Row'];

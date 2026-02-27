@@ -20,6 +20,8 @@ export const ProcessCreate: React.FC = () => {
     const [selectedApprovers, setSelectedApprovers] = useState<string[]>([]);
     const [selectedViewerRoles, setSelectedViewerRoles] = useState<string[]>([]);
     const [selectedEditorRoles, setSelectedEditorRoles] = useState<string[]>([]);
+    const [pools, setPools] = useState<string[]>([]);
+    const [newPool, setNewPool] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -98,7 +100,7 @@ export const ProcessCreate: React.FC = () => {
                 department_id: departmentId || null,
                 organization_id: profile.organization_id,
                 created_by: session.user.id
-            }, selectedViewerRoles, selectedEditorRoles);
+            }, selectedViewerRoles, selectedEditorRoles, pools.length > 0 ? pools : undefined);
 
             // Add Approvers
             if (selectedApprovers.length > 0) {
@@ -187,6 +189,61 @@ export const ProcessCreate: React.FC = () => {
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                     />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Piscinas (Pools / Setores Envolvidos)
+                    </label>
+                    <div className="flex gap-2 mb-2">
+                        <input
+                            type="text"
+                            className="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm"
+                            placeholder="Ex: Financeiro, Cliente Externo, Fornecedor"
+                            value={newPool}
+                            onChange={(e) => setNewPool(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    if (newPool.trim() && !pools.includes(newPool.trim())) {
+                                        setPools([...pools, newPool.trim()]);
+                                        setNewPool('');
+                                    }
+                                }
+                            }}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (newPool.trim() && !pools.includes(newPool.trim())) {
+                                    setPools([...pools, newPool.trim()]);
+                                    setNewPool('');
+                                }
+                            }}
+                            className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 text-sm font-medium transition-colors"
+                        >
+                            Adicionar
+                        </button>
+                    </div>
+                    {pools.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                            {pools.map((pool, idx) => (
+                                <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                    {pool}
+                                    <button
+                                        type="button"
+                                        onClick={() => setPools(pools.filter((_, i) => i !== idx))}
+                                        className="text-blue-500 hover:text-blue-700"
+                                    >
+                                        &times;
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                    <p className="mt-1 text-xs text-gray-500">
+                        Liste os atores ou setores principais que farão parte deste fluxo. Estas piscinas estarão disponíveis para selecionar em cada passo no editor.
+                    </p>
                 </div>
 
                 <div>

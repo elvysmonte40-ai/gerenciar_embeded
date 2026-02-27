@@ -278,6 +278,7 @@ const ProcessEditorInner: React.FC<ProcessEditorProps> = ({ processId }) => {
                                     initialFlowData={flowData}
                                     onFlowChange={setFlowData}
                                     readOnly={version.status !== 'draft' || !canEdit}
+                                    availablePools={process.pools || []}
                                 />
                             </div>
                         ) : (
