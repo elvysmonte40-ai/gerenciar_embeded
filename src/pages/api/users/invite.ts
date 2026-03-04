@@ -20,7 +20,7 @@ export const POST: APIRoute = async ({ request }) => {
 
         // Parse Body
         const body = await request.json();
-        const { fullName, email, role, organization_id, cpf, birthDate, jobTitle, department, managerId, gender, password, organizationRoleId } = body;
+        const { fullName, email, role, organization_id, cpf, birthDate, jobTitle, department, sector, managerId, gender, password, organizationRoleId } = body;
 
         if (!email || !organization_id) {
             return new Response(JSON.stringify({ error: "Email and Organization ID are required" }), { status: 400 });
@@ -44,12 +44,13 @@ export const POST: APIRoute = async ({ request }) => {
                     organization_id,
                     full_name: fullName,
                     role: role || 'user',
-                    cpf,
-                    birth_date: birthDate,
-                    job_title: jobTitle,
-                    department,
-                    manager_id: managerId,
-                    gender,
+                    cpf: cpf || null,
+                    birth_date: birthDate || null,
+                    job_title: jobTitle || null,
+                    department: department || null,
+                    sector: sector || null,
+                    manager_id: managerId || null,
+                    gender: gender || null,
                     organization_role_id: organizationRoleId || null
                 }
             });
@@ -63,12 +64,13 @@ export const POST: APIRoute = async ({ request }) => {
                     organization_id,
                     full_name: fullName,
                     role: role || 'user',
-                    cpf,
-                    birth_date: birthDate,
-                    job_title: jobTitle,
-                    department,
-                    manager_id: managerId,
-                    gender,
+                    cpf: cpf || null,
+                    birth_date: birthDate || null,
+                    job_title: jobTitle || null,
+                    department: department || null,
+                    sector: sector || null,
+                    manager_id: managerId || null,
+                    gender: gender || null,
                     organization_role_id: organizationRoleId || null
                 }
             });
@@ -81,6 +83,6 @@ export const POST: APIRoute = async ({ request }) => {
 
     } catch (err: any) {
         console.error("Server error:", err);
-        return new Response(JSON.stringify({ error: "Internal Server Error" }), { status: 500 });
+        return new Response(JSON.stringify({ error: err.message || "Internal Server Error" }), { status: err.status || 500 });
     }
 };

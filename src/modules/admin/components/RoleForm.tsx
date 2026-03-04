@@ -276,6 +276,7 @@ export default function RoleForm({ role, isOpen, onClose, onSuccess }: RoleFormP
                                                                     { key: 'processes', label: 'Processos' },
                                                                     { key: 'indicators', label: 'Indicadores' },
                                                                     { key: 'profiles', label: 'Perfis de Acesso' },
+                                                                    { key: 'contracts', label: 'Contratos' },
                                                                 ].map((module) => (
                                                                     <tr key={module.key}>
                                                                         <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">{module.label}</td>

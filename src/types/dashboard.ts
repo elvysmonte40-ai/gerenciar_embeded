@@ -10,6 +10,7 @@ export interface AppPermissions {
     processes: PermissionRules;
     indicators: PermissionRules;
     profiles: PermissionRules;
+    contracts: PermissionRules;
     organization: {
         manage_settings: boolean;
     };
@@ -20,6 +21,7 @@ export const DEFAULT_PERMISSIONS: AppPermissions = {
     processes: { view: false, create: false, edit: false, delete: false },
     indicators: { view: false, create: false, edit: false, delete: false },
     profiles: { view: false, create: false, edit: false, delete: false },
+    contracts: { view: false, create: false, edit: false, delete: false },
     organization: { manage_settings: false },
 };
 
@@ -34,7 +36,7 @@ export interface OrganizationRole {
     is_active: boolean;
     created_at: string;
     updated_at: string;
-    dashboards?: string[]; 
+    dashboards?: string[];
 }
 
 export interface OrganizationMenu {

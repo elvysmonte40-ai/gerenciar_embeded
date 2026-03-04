@@ -6,6 +6,7 @@ export const DEFAULT_PERMISSIONS: AppPermissions = {
     processes: { view: false, create: false, edit: false, delete: false },
     indicators: { view: false, create: false, edit: false, delete: false },
     profiles: { view: false, create: false, edit: false, delete: false },
+    contracts: { view: false, create: false, edit: false, delete: false },
     organization: { manage_settings: false },
 };
 
@@ -38,6 +39,7 @@ export function mergePermissions(storedPermissions: any): AppPermissions {
         processes: { ...DEFAULT_PERMISSIONS.processes, ...storedPermissions.processes },
         indicators: { ...DEFAULT_PERMISSIONS.indicators, ...storedPermissions.indicators },
         profiles: { ...DEFAULT_PERMISSIONS.profiles, ...storedPermissions.profiles },
+        contracts: { ...DEFAULT_PERMISSIONS.contracts, ...storedPermissions.contracts },
         organization: { ...DEFAULT_PERMISSIONS.organization, ...storedPermissions.organization },
     };
 }

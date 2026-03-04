@@ -6,7 +6,7 @@ import { Bell, CheckCircle, Info } from 'lucide-react';
 
 type NotificationItem = {
     id: string;
-    type: 'system_message' | 'process_approval';
+    type: 'system_message' | 'process_approval' | 'in_app_alert';
     title: string;
     created_at: string;
     read: boolean;
@@ -110,6 +110,32 @@ export const NotificationBell: React.FC = () => {
             console.error("Error fetching approvals", e);
         }
 
+        // 3. Fetch In-App Alerts
+        try {
+            const { data: alerts } = await supabase
+                .from('in_app_notifications')
+                .select('*')
+                .eq('user_id', session.user.id)
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            if (alerts) {
+                alerts.forEach(app => {
+                    allNotifications.push({
+                        id: app.id,
+                        type: 'in_app_alert',
+                        title: app.title,
+                        created_at: app.created_at,
+                        read: app.is_read,
+                        data: app,
+                        link: app.link
+                    });
+                });
+            }
+        } catch (e) {
+            console.error("Error fetching alerts", e);
+        }
+
         // Sort by date desc
         allNotifications.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -125,7 +151,8 @@ export const NotificationBell: React.FC = () => {
             .channel('public:notifications_bell')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'system_messages' }, fetchNotifications)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'system_message_reads' }, fetchNotifications)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'process_version_approvers' }, fetchNotifications) // Listen for approvals
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'process_version_approvers' }, fetchNotifications)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'in_app_notifications' }, fetchNotifications)
             .subscribe();
 
         return () => {
@@ -133,9 +160,18 @@ export const NotificationBell: React.FC = () => {
         }
     }, []);
 
-    const handleNotificationClick = (notification: NotificationItem) => {
+    const handleNotificationClick = async (notification: NotificationItem) => {
         setIsOpen(false);
+
+        // Mark in-app-alert as read
+        if (notification.type === 'in_app_alert' && !notification.read) {
+            await supabase.from('in_app_notifications').update({ is_read: true }).eq('id', notification.id);
+            fetchNotifications(); // Optimistic update would be better, but this is safe
+        }
+
         if (notification.type === 'process_approval' && notification.link) {
+            window.location.href = notification.link;
+        } else if (notification.type === 'in_app_alert' && notification.link) {
             window.location.href = notification.link;
         } else if (notification.type === 'system_message') {
             window.dispatchEvent(

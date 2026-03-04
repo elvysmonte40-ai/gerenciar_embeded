@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import { DataUploader } from "./DataUploader";
-import { MigrationValidationService, ValidationResult } from "../services/MigrationValidationService";
+import { MigrationValidationService, type ValidationResult } from "../services/MigrationValidationService";
 import { MigrationInsertService } from "../services/MigrationInsertService";
 import { supabase } from "../../../lib/supabase";
 
@@ -23,32 +23,49 @@ export function MigrationManager() {
     // ---------------------------------------------------------------------------
     const MIGRATION_STEPS: MigrationStepConfig[] = [
         {
+            id: 'pessoais',
+            title: 'Pessoas (Base)',
+            description: 'Carregue a planilha básica (*cpf*, *email*, *nome*). Opcionais: *data_nascimento* e *genero*.',
+            expectedColumns: ['cpf', 'email', 'nome'],
+            validationAction: MigrationValidationService.validatePessoaisBase,
+            apiAction: MigrationInsertService.insertPessoaisBase
+        },
+        {
             id: 'roles',
             title: 'Cargos',
             description: 'Carregue a planilha contendo a estrutura de cargos (*nome_cargo*).',
             expectedColumns: ['nome_cargo'],
+            dependsOn: ['pessoais'],
             validationAction: MigrationValidationService.validateRoles,
             apiAction: MigrationInsertService.insertRoles
         },
         {
-            id: 'users',
-            title: 'Usuários',
-            description: 'Carregue a planilha (*email*, *nome*, *cargo*). A coluna *cpf* é opcional.',
-            expectedColumns: ['email', 'nome', 'cargo'],
-            dependsOn: ['roles'], // Depende de Cargos
-            validationAction: MigrationValidationService.validateUsers,
-            apiAction: MigrationInsertService.insertUsers
+            id: 'departments',
+            title: 'Departamentos',
+            description: 'Planilha de departamentos (*nome_departamento*).',
+            expectedColumns: ['nome_departamento'],
+            dependsOn: ['pessoais', 'roles'],
+            validationAction: MigrationValidationService.validateDepartments,
+            apiAction: MigrationInsertService.insertDepartments
+        },
+        {
+            id: 'sectors',
+            title: 'Setores',
+            description: 'Planilha de setores vinculados aos departamentos (*nome_setor*, *nome_departamento*).',
+            expectedColumns: ['nome_setor', 'nome_departamento'],
+            dependsOn: ['pessoais', 'roles', 'departments'],
+            validationAction: MigrationValidationService.validateSectors,
+            apiAction: MigrationInsertService.insertSectors
+        },
+        {
+            id: 'associations',
+            title: 'Associações (Tudo)',
+            description: 'Relacione o *email* ou *cpf* com *cargo*, *departamento*, *setor*, *lider_email*. Opcional: *perfil_de_acesso* (O nome da permissão).',
+            expectedColumns: ['email', 'cargo', 'departamento', 'setor', 'lider_email'],
+            dependsOn: ['pessoais', 'roles', 'departments', 'sectors'],
+            validationAction: MigrationValidationService.validateAssociations,
+            apiAction: MigrationInsertService.updateAssociations
         }
-        // Exemplo: Para adicionar "Departamentos", basta adicionar um novo objeto aqui:
-        // {
-        //     id: 'departments',
-        //     title: 'Departamentos',
-        //     description: 'Planilha de departamentos (*nome*, *gestor_email*).',
-        //     expectedColumns: ['nome'],
-        //     dependsOn: [], 
-        //     validationAction: MigrationValidationService.validateDepartments, // Criar no service
-        //     apiAction: MigrationInsertService.insertDepartments // Criar no service
-        // }
     ];
 
     // State management

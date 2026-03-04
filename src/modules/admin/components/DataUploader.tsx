@@ -48,7 +48,8 @@ export function DataUploader({ onDataLoaded, expectedColumns }: DataUploaderProp
                 onDataLoaded(json);
             } catch (err: any) {
                 console.error("Erro ao ler planilha:", err);
-                setError("Ocorreu um erro ao processar o arquivo. Verifique se ele é um formato Excel/CSV válido.");
+                const msg = err.message || "Erro desconhecido";
+                setError(`Falha ao ler o arquivo: ${msg} (Verifique as colunas e o formato)`);
             }
         };
 

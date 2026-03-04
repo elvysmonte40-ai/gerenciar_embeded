@@ -4,6 +4,7 @@ import "../styles/global.css";
 import ProfileModal from "../components/ProfileModal";
 import { SystemMessageManager } from "../components/SystemMessageManager";
 import { NotificationBell } from "../components/NotificationBell";
+import { HelpDeskWidget } from "../components/HelpDeskWidget";
 
 interface Props {
   title: string;
@@ -47,8 +48,10 @@ const {
         <a
           href="/"
           class="text-xl font-semibold text-brand tracking-tight flex items-center gap-2"
+          id="global-brand-logo"
         >
-          <span>🔷</span> Gerenciar
+          <span>🔷</span>
+          <span id="org-name-header">Gerenciar</span>
         </a>
 
         <!-- Module Navigation -->
@@ -247,6 +250,44 @@ const {
       </div>
     </header>
 
+    <!-- Synchronous script to prevent FOUC (Flash of Unstyled Content) -->
+    <script is:inline>
+      try {
+        const isPublicPage = ["/login", "/register", "/"].includes(
+          window.location.pathname,
+        );
+        if (isPublicPage) {
+          localStorage.removeItem("tenantContext");
+        } else {
+          const tenantStr = localStorage.getItem("tenantContext");
+          if (tenantStr) {
+            const tenant = JSON.parse(tenantStr);
+
+            if (tenant.color) {
+              document.documentElement.style.setProperty(
+                "--color-brand",
+                tenant.color,
+              );
+            }
+
+            if (tenant.name) {
+              const orgNameEl = document.getElementById("org-name");
+              if (orgNameEl) orgNameEl.textContent = tenant.name;
+            }
+
+            const brandContainer = document.getElementById("global-brand-logo");
+            if (brandContainer) {
+              if (tenant.logo) {
+                brandContainer.innerHTML = `<img src="${tenant.logo}" alt="${tenant.name || ""}" class="h-8 w-auto object-contain" />`;
+              } else if (tenant.name) {
+                brandContainer.innerHTML = `<span>🔷</span><span id="org-name-header">${tenant.name}</span>`;
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    </script>
+
     <div class="flex flex-1 overflow-hidden">
       <!-- 2. Context Sidebar -->
       <!-- 2. Context Sidebar -->
@@ -279,9 +320,10 @@ const {
       </main>
     </div>
 
-    <!-- Modals -->
+    <!-- Modals and Floating Elements -->
     <ProfileModal client:idle />
     <SystemMessageManager client:idle />
+    <HelpDeskWidget client:only="react" />
 
     <script>
       import { supabase } from "../lib/supabase";
@@ -398,19 +440,52 @@ const {
               `
               full_name,
               organizations (
-                name
+                name,
+                logo_url,
+                accent_color
               )
             `,
             )
             .eq("id", session.user.id)
             .single();
 
-          if (profile && userInfo) {
-            if (orgNameEl && profile.organizations) {
-              // @ts-ignore
-              orgNameEl.textContent = profile.organizations.name;
+          if (profile?.organizations) {
+            // @ts-ignore
+            const org = (
+              Array.isArray(profile.organizations)
+                ? profile.organizations[0]
+                : profile.organizations
+            ) as any;
+
+            if (orgNameEl) orgNameEl.textContent = org.name;
+            const orgTitleEl = document.getElementById("org-name-header");
+            if (orgTitleEl) orgTitleEl.textContent = org.name;
+
+            if (org.accent_color) {
+              const root = document.documentElement;
+              // Set the brand css variables
+              root.style.setProperty("--color-brand", org.accent_color);
             }
 
+            const brandContainer = document.getElementById("global-brand-logo");
+            if (brandContainer && org.logo_url) {
+              brandContainer.innerHTML = `<img src="${org.logo_url}" alt="${org.name}" class="h-8 w-auto object-contain" />`;
+            } else if (brandContainer) {
+              brandContainer.innerHTML = `<span>🔷</span><span id="org-name-header">${org.name}</span>`;
+            }
+
+            // Guardar context p/ evitar piscada no próximo recarregamento (FOUC)
+            localStorage.setItem(
+              "tenantContext",
+              JSON.stringify({
+                name: org.name,
+                logo: org.logo_url,
+                color: org.accent_color,
+              }),
+            );
+          }
+
+          if (profile && userInfo) {
             if (avatarEl && profile.full_name) {
               const initials = profile.full_name
                 .split(" ")
@@ -505,6 +580,7 @@ const {
 
       if (logoutBtn) {
         logoutBtn.addEventListener("click", async () => {
+          localStorage.removeItem("tenantContext");
           await supabase.auth.signOut();
           window.location.href = "/login";
         });
