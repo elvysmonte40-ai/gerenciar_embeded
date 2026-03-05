@@ -1,0 +1,137 @@
+[
+  {
+    "full_name": "Fernando Silva",
+    "cpf": "384.733.838-33",
+    "admission_date": null,
+    "inactivation_date": null,
+    "department_id": "e8dcaada-b68a-47d8-8a09-d9e8671a8789",
+    "job_title_id": "37bf022c-0646-46c5-9367-407f1e7477f4",
+    "manager_name": null
+  },
+  {
+    "full_name": "ELVYS MONTE PEREIRA",
+    "cpf": null,
+    "admission_date": null,
+    "inactivation_date": null,
+    "department_id": null,
+    "job_title_id": null,
+    "manager_name": null
+  },
+  {
+    "full_name": "Tatutec",
+    "cpf": null,
+    "admission_date": null,
+    "inactivation_date": null,
+    "department_id": null,
+    "job_title_id": null,
+    "manager_name": null
+  },
+  {
+    "full_name": "Elvys Monte Pereira",
+    "cpf": "607.840.693-01",
+    "admission_date": null,
+    "inactivation_date": null,
+    "department_id": "30665856-cd71-4465-b754-a8be5a40e73d",
+    "job_title_id": "1b28ca4a-79d9-4203-80eb-6810bd15acf5",
+    "manager_name": null
+  },
+  {
+    "full_name": "Paulo Marcelo",
+    "cpf": "384.733.838-35",
+    "admission_date": null,
+    "inactivation_date": null,
+    "department_id": "30665856-cd71-4465-b754-a8be5a40e73d",
+    "job_title_id": "1b28ca4a-79d9-4203-80eb-6810bd15acf5",
+    "manager_name": null
+  },
+  {
+    "full_name": "RODRIGO  PARENTE DIAS",
+    "cpf": null,
+    "admission_date": null,
+    "inactivation_date": null,
+    "department_id": null,
+    "job_title_id": null,
+    "manager_name": null
+  },
+  {
+    "full_name": "Higor",
+    "cpf": "",
+    "admission_date": null,
+    "inactivation_date": null,
+    "department_id": null,
+    "job_title_id": null,
+    "manager_name": null
+  },
+  {
+    "full_name": "ERIENE LIMA VIANA",
+    "cpf": null,
+    "admission_date": null,
+    "inactivation_date": null,
+    "department_id": null,
+    "job_title_id": null,
+    "manager_name": null
+  },
+  {
+    "full_name": "STEPHANNY  MARIA SALES BULHÕES",
+    "cpf": null,
+    "admission_date": null,
+    "inactivation_date": null,
+    "department_id": null,
+    "job_title_id": null,
+    "manager_name": null
+  },
+  {
+    "full_name": "FRANCISCO FELIPE MOREIRA SOUSA",
+    "cpf": null,
+    "admission_date": null,
+    "inactivation_date": null,
+    "department_id": null,
+    "job_title_id": null,
+    "manager_name": null
+  },
+  {
+    "full_name": "EDIVAN  DE SOUZA NUNES",
+    "cpf": null,
+    "admission_date": null,
+    "inactivation_date": null,
+    "department_id": null,
+    "job_title_id": null,
+    "manager_name": null
+  },
+  {
+    "full_name": "José Félix de Maria Filho",
+    "cpf": null,
+    "admission_date": null,
+    "inactivation_date": null,
+    "department_id": null,
+    "job_title_id": null,
+    "manager_name": null
+  },
+  {
+    "full_name": "BIANCA MARIA PEREIRA RODRIGUES",
+    "cpf": null,
+    "admission_date": null,
+    "inactivation_date": null,
+    "department_id": null,
+    "job_title_id": null,
+    "manager_name": null
+  },
+  {
+    "full_name": "Iami Xavier",
+    "cpf": "451.213.542-13",
+    "admission_date": null,
+    "inactivation_date": null,
+    "department_id": "a9611c1f-c234-4ac8-909d-25e0fa27000d",
+    "job_title_id": "a1221d99-d454-4a60-aa4c-d9237990331f",
+    "manager_name": null
+  },
+  {
+    "full_name": "Elvys Monte Pereira",
+    "cpf": null,
+    "admission_date": null,
+    "inactivation_date": null,
+    "department_id": null,
+    "job_title_id": null,
+    "manager_name": null
+  }
+]

@@ -69,6 +69,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
     const [departmentId, setDepartmentId] = useState('');
     const [sectorId, setSectorId] = useState('');
     const [managerId, setManagerId] = useState('');
+    const [managerName, setManagerName] = useState('');
     const [gender, setGender] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -79,6 +80,8 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
     const [cpfError, setCpfError] = useState('');
     const [emailError, setEmailError] = useState('');
     const [organizationRoleId, setOrganizationRoleId] = useState('');
+    const [admissionDate, setAdmissionDate] = useState('');
+    const [inactivationDate, setInactivationDate] = useState('');
 
     // Additional state for managers list
     const [managers, setManagers] = useState<UserProfile[]>([]);
@@ -99,7 +102,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
             // Fetch Managers
             const { data: managersData } = await supabase
                 .from('profiles')
-                .select('id, full_name')
+                .select('id, full_name, manager_name')
                 .eq('organization_id', orgId)
                 .order('full_name');
 
@@ -187,16 +190,22 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                 };
                 fetchEmail();
 
-                setCpf(userToEdit.cpf || '');
+                let loadedCpf = userToEdit.cpf || '';
+                if (loadedCpf.length === 11) {
+                    loadedCpf = loadedCpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+                }
+                setCpf(loadedCpf);
                 setBirthDate(userToEdit.birth_date || '');
 
                 setJobTitleId(userToEdit.job_title_id || '');
                 setDepartmentId(userToEdit.department_id || '');
                 setSectorId(userToEdit.sector_id || '');
                 setManagerId(userToEdit.manager_id || '');
-                setManagerId(userToEdit.manager_id || '');
+                setManagerName((userToEdit as any).manager_name || '');
                 setGender(userToEdit.gender || '');
                 setOrganizationRoleId(userToEdit.organization_role_id || '');
+                setAdmissionDate((userToEdit as any).admission_date || '');
+                setInactivationDate((userToEdit as any).inactivation_date || '');
 
                 setPassword('');
                 setConfirmPassword('');
@@ -213,8 +222,11 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                 setDepartmentId('');
                 setSectorId('');
                 setManagerId('');
+                setManagerName('');
                 setGender('');
                 setOrganizationRoleId('');
+                setAdmissionDate('');
+                setInactivationDate('');
                 setPassword('');
                 setConfirmPassword('');
                 setShowPassword(false);
@@ -244,7 +256,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
             let query = supabase
                 .from('profiles')
                 .select('id')
-                .eq('cpf', cpf);
+                .eq('cpf', cpf.replace(/\D/g, ''));
 
             if (userToEdit) {
                 query = query.neq('id', userToEdit.id);
@@ -333,14 +345,16 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                     .update({
                         full_name: fullName,
                         role: role,
-                        cpf,
+                        cpf: cpf.replace(/\D/g, ''),
                         birth_date: birthDate || null,
                         job_title_id: jobTitleId || null,
                         department_id: departmentId || null,
                         sector_id: sectorId || null,
                         manager_id: managerId || null,
                         gender,
-                        organization_role_id: organizationRoleId || null
+                        organization_role_id: organizationRoleId || null,
+                        admission_date: admissionDate || null,
+                        inactivation_date: inactivationDate || null
                         // email removed from here as we don't have the column in profiles yet
                     })
                     .eq('id', userToEdit.id);
@@ -373,7 +387,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                         email,
                         role,
                         organization_id: session.user.user_metadata.organization_id,
-                        cpf,
+                        cpf: cpf.replace(/\D/g, ''),
                         birthDate,
 
                         jobTitleId,
@@ -381,7 +395,9 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                         sectorId,
                         managerId: managerId || null,
                         gender,
-                        organizationRoleId: organizationRoleId || null
+                        organizationRoleId: organizationRoleId || null,
+                        admissionDate: admissionDate || null,
+                        inactivationDate: inactivationDate || null
                     }),
                 });
 
@@ -585,6 +601,29 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                                                                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm"
                                                                 value={birthDate}
                                                                 onChange={e => setBirthDate(e.target.value)}
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label htmlFor="admissionDate" className="block text-sm font-medium text-gray-700">Data de Admissão</label>
+                                                            <input
+                                                                type="date"
+                                                                id="admissionDate"
+                                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm"
+                                                                value={admissionDate}
+                                                                onChange={e => setAdmissionDate(e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label htmlFor="inactivationDate" className="block text-sm font-medium text-gray-700">Data de Inativação</label>
+                                                            <input
+                                                                type="date"
+                                                                id="inactivationDate"
+                                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm"
+                                                                value={inactivationDate}
+                                                                onChange={e => setInactivationDate(e.target.value)}
                                                             />
                                                         </div>
                                                     </div>

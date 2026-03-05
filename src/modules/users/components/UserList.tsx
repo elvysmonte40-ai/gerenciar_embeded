@@ -35,11 +35,24 @@ export default function UserList() {
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const ITEMS_PER_PAGE = 10;
+    const [searchName, setSearchName] = useState("");
+    const [searchCpf, setSearchCpf] = useState("");
+    const [filterRole, setFilterRole] = useState("");
+    const [filterStatus, setFilterStatus] = useState("");
 
-    // Permissions State
+    // Novo: Filtros que mapeamos da api
+    const [filterJobTitle, setFilterJobTitle] = useState("");
+    const [filterDepartment, setFilterDepartment] = useState("");
+    const [filterManager, setFilterManager] = useState("");
+
+    // Lookups for filters
+    const [rolesList, setRolesList] = useState<any[]>([]);
+    const [deptsList, setDeptsList] = useState<any[]>([]);
+    const [managersList, setManagersList] = useState<any[]>([]);
+
     const [permissions, setPermissions] = useState<AppPermissions | null>(null);
     const [isOrgAdmin, setIsOrgAdmin] = useState(false);
+    const ITEMS_PER_PAGE = 10;
 
     useEffect(() => {
         loadPermissions();
@@ -47,7 +60,7 @@ export default function UserList() {
 
     useEffect(() => {
         fetchUsers();
-    }, [page]);
+    }, [page, searchName, searchCpf, filterRole, filterStatus, filterJobTitle, filterDepartment, filterManager]);
 
     const loadPermissions = async () => {
         const { data: { session } } = await supabase.auth.getSession();
@@ -55,6 +68,24 @@ export default function UserList() {
             const { permissions, isOrgAdmin } = await fetchUserPermissions(session.user.id);
             setPermissions(permissions);
             setIsOrgAdmin(isOrgAdmin);
+
+            // Carregar lookups de filtros apenas 1 vez após org ser obtida (para evitar props passando na UI)
+            const orgId = session.user.user_metadata.organization_id;
+            if (orgId) {
+                const [{ data: rData }, { data: dData }, { data: mData }] = await Promise.all([
+                    supabase.from('job_titles').select('id, title').eq('organization_id', orgId),
+                    supabase.from('departments').select('id, name').eq('organization_id', orgId),
+                    supabase.from('profiles').select('manager_name').eq('organization_id', orgId).not('manager_name', 'is', null)
+                ]);
+                if (rData) setRolesList(rData);
+                if (dData) setDeptsList(dData);
+
+                // Managers (Using distinct on front-end for now as it's just TEXT mapping)
+                if (mData) {
+                    const uniqueManagers = Array.from(new Set(mData.map(m => m.manager_name))).filter(Boolean);
+                    setManagersList(uniqueManagers.map(name => ({ name })));
+                }
+            }
         }
     };
 
@@ -81,23 +112,46 @@ export default function UserList() {
             const from = (page - 1) * ITEMS_PER_PAGE;
             const to = from + ITEMS_PER_PAGE - 1;
 
-            // Note: 'profiles' table has 'status' (text), not 'is_active'.
-            // 'email' is in auth.users, not profiles. We can't join easily from client.
-            // We will skip email for now.
-
-            const { data, error, count } = await supabase
+            let query = supabase
                 .from('profiles')
                 .select(`
                     id, full_name, role, status, created_at, organization_id, cpf, birth_date, can_export_data,
-                    manager_id, employee_id, gender,
+                    manager_id, manager_name, employee_id, gender, admission_date, inactivation_date,
                     job_title_id, department_id, sector_id, organization_role_id,
                     job_titles:job_title_id(title),
                     departments:department_id(name),
                     sectors:sector_id(name)
                 `, { count: 'exact' })
-                .eq('organization_id', orgId)
-                .range(from, to)
-                .order('created_at', { ascending: false });
+                .eq('organization_id', orgId);
+
+            // Apply Filters
+            if (searchName) {
+                query = query.ilike('full_name', `%${searchName}%`);
+            }
+            if (searchCpf) {
+                const cleanSchCpf = searchCpf.replace(/\D/g, '');
+                query = query.like('cpf', `%${cleanSchCpf}%`);
+            }
+            if (filterRole) {
+                query = query.eq('role', filterRole);
+            }
+            if (filterStatus) {
+                query = query.eq('status', filterStatus);
+            }
+            // Real relations filtering
+            if (filterJobTitle) {
+                query = query.eq('job_title_id', filterJobTitle);
+            }
+            if (filterDepartment) {
+                query = query.eq('department_id', filterDepartment);
+            }
+            if (filterManager) {
+                query = query.eq('manager_name', filterManager);
+            }
+
+            query = query.order('created_at', { ascending: false }).range(from, to);
+
+            const { data, error, count } = await query;
 
             if (error) throw error;
 
@@ -182,6 +236,113 @@ export default function UserList() {
                 }}
                 userToEdit={editingUser}
             />
+
+            {/* BARRA DE FILTROS */}
+            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                        Filtros Avançados
+                    </h3>
+                    {(searchName || searchCpf || filterRole || filterStatus || filterJobTitle || filterDepartment || filterManager) && (
+                        <button
+                            onClick={() => {
+                                setSearchName(""); setSearchCpf(""); setFilterRole(""); setFilterStatus("");
+                                setFilterJobTitle(""); setFilterDepartment(""); setFilterManager("");
+                            }}
+                            className="text-xs text-brand hover:text-brand-dark transition-colors"
+                        >
+                            Limpar Filtros
+                        </button>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {/* Nome Busca */}
+                    <div>
+                        <input
+                            type="text"
+                            placeholder="Buscar por Nome"
+                            className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-brand focus:ring-brand"
+                            value={searchName}
+                            onChange={(e) => setSearchName(e.target.value)}
+                        />
+                    </div>
+                    {/* CPF Busca */}
+                    <div>
+                        <input
+                            type="text"
+                            placeholder="Buscar por CPF"
+                            className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-brand focus:ring-brand"
+                            value={searchCpf}
+                            onChange={(e) => setSearchCpf(e.target.value)}
+                        />
+                    </div>
+                    {/* Status Busca */}
+                    <div>
+                        <select
+                            className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-brand focus:ring-brand"
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                        >
+                            <option value="">Status: Todos</option>
+                            <option value="active">Ativo</option>
+                            <option value="inactive">Inativo</option>
+                        </select>
+                    </div>
+                    {/* Role Busca */}
+                    <div>
+                        <select
+                            className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-brand focus:ring-brand"
+                            value={filterRole}
+                            onChange={(e) => setFilterRole(e.target.value)}
+                        >
+                            <option value="">Acesso: Todos</option>
+                            <option value="user">Colaborador</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+                    {/* Job Title Busca */}
+                    <div>
+                        <select
+                            className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-brand focus:ring-brand"
+                            value={filterJobTitle}
+                            onChange={(e) => setFilterJobTitle(e.target.value)}
+                        >
+                            <option value="">Cargo: Todos</option>
+                            {rolesList.map((r, i) => (
+                                <option key={i} value={r.id}>{r.title}</option>
+                            ))}
+                        </select>
+                    </div>
+                    {/* Dept Busca */}
+                    <div>
+                        <select
+                            className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-brand focus:ring-brand"
+                            value={filterDepartment}
+                            onChange={(e) => setFilterDepartment(e.target.value)}
+                        >
+                            <option value="">Departamento: Todos</option>
+                            {deptsList.map((d, i) => (
+                                <option key={i} value={d.id}>{d.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    {/* Manager Busca */}
+                    <div>
+                        <select
+                            className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-brand focus:ring-brand"
+                            value={filterManager}
+                            onChange={(e) => setFilterManager(e.target.value)}
+                        >
+                            <option value="">Líder/Gestor: Todos</option>
+                            {managersList.map((m, i) => (
+                                <option key={i} value={m.name}>{m.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+            </div>
 
             {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
