@@ -1,0 +1,10 @@
+src/modules/users/components/Organogram.tsx(7,5): error TS1484: 'Edge' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/modules/users/components/Organogram.tsx(8,5): error TS1484: 'Node' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+supabase/functions/generate-powerbi-token/index.ts(2,23): error TS2307: Cannot find module 'https://deno.land/std@0.168.0/http/server.ts' or its corresponding type declarations.
+supabase/functions/generate-powerbi-token/index.ts(3,30): error TS2307: Cannot find module 'https://esm.sh/@supabase/supabase-js@2.0.0' or its corresponding type declarations.
+supabase/functions/generate-powerbi-token/index.ts(10,14): error TS7006: Parameter 'req' implicitly has an 'any' type.
+supabase/functions/generate-powerbi-token/index.ts(19,13): error TS2304: Cannot find name 'Deno'.
+supabase/functions/generate-powerbi-token/index.ts(20,13): error TS2304: Cannot find name 'Deno'.
+supabase/functions/generate-powerbi-token/index.ts(46,13): error TS2304: Cannot find name 'Deno'.
+supabase/functions/generate-powerbi-token/index.ts(47,13): error TS2304: Cannot find name 'Deno'.
+supabase/functions/generate-powerbi-token/index.ts(121,37): error TS18046: 'error' is of type 'unknown'.

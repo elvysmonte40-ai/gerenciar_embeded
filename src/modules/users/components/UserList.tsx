@@ -54,6 +54,11 @@ export default function UserList() {
     const [isOrgAdmin, setIsOrgAdmin] = useState(false);
     const ITEMS_PER_PAGE = 10;
 
+    // Email actions
+    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const [emailSending, setEmailSending] = useState<string | null>(null);
+    const [emailMessage, setEmailMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
     useEffect(() => {
         loadPermissions();
     }, []);
@@ -196,6 +201,38 @@ export default function UserList() {
 
         } catch (err: any) {
             alert("Erro ao atualizar status: " + err.message);
+        }
+    };
+
+    const handleSendEmail = async (userId: string, type: 'welcome' | 'password_reset', userName: string) => {
+        const typeLabel = type === 'welcome' ? 'boas-vindas' : 'redefinição de senha';
+        if (!confirm(`Enviar email de ${typeLabel} para ${userName}?`)) return;
+
+        setEmailSending(userId);
+        setOpenMenuId(null);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error('Sessão expirada');
+
+            const res = await fetch('/api/emails/send-manual', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ type, userId }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Falha ao enviar');
+
+            setEmailMessage({ type: 'success', text: data.message });
+            setTimeout(() => setEmailMessage(null), 4000);
+        } catch (err: any) {
+            setEmailMessage({ type: 'error', text: err.message });
+            setTimeout(() => setEmailMessage(null), 4000);
+        } finally {
+            setEmailSending(null);
         }
     };
 
@@ -344,6 +381,12 @@ export default function UserList() {
                 </div>
             </div>
 
+            {emailMessage && (
+                <div className={`px-4 py-3 rounded-lg text-sm flex items-center gap-2 ${emailMessage.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                    {emailMessage.type === 'success' ? '✅' : '❌'} {emailMessage.text}
+                </div>
+            )}
+
             {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
                     {error}
@@ -420,27 +463,85 @@ export default function UserList() {
                                         {new Date(user.created_at).toLocaleDateString('pt-BR')}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            {hasPermission(permissions, 'users', 'edit', isOrgAdmin) && (
-                                                <button
-                                                    className="text-brand hover:text-brand-dark"
-                                                    title="Editar"
-                                                    onClick={() => {
-                                                        setEditingUser(user);
-                                                        setIsFormOpen(true);
-                                                    }}
-                                                >
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                                </button>
+                                        <div className="relative flex justify-end">
+                                            {emailSending === user.id && (
+                                                <div className="absolute right-8 top-1/2 -translate-y-1/2">
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                                </div>
                                             )}
                                             {hasPermission(permissions, 'users', 'edit', isOrgAdmin) && (
-                                                <button onClick={() => handleToggleStatus(user.id, user.status)} className="text-red-600 hover:text-red-900" title={user.status === 'active' ? "Inativar" : "Ativar"}>
-                                                    {user.status === 'active' ? (
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                                    ) : (
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                                                    )}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setOpenMenuId(openMenuId === user.id ? null : user.id);
+                                                    }}
+                                                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                                                    title="Ações"
+                                                >
+                                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                                                    </svg>
                                                 </button>
+                                            )}
+
+                                            {/* Dropdown Menu */}
+                                            {openMenuId === user.id && (
+                                                <>
+                                                    <div className="fixed inset-0 z-30" onClick={() => setOpenMenuId(null)} />
+                                                    <div className="absolute right-0 top-8 z-40 w-52 bg-white rounded-xl shadow-lg border border-gray-200 py-1 animate-fadeIn">
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingUser(user);
+                                                                setIsFormOpen(true);
+                                                                setOpenMenuId(null);
+                                                            }}
+                                                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors"
+                                                        >
+                                                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                                            Editar
+                                                        </button>
+
+                                                        <div className="border-t border-gray-100 my-1" />
+
+                                                        <button
+                                                            onClick={() => handleSendEmail(user.id, 'welcome', user.full_name)}
+                                                            disabled={emailSending === user.id}
+                                                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2.5 transition-colors disabled:opacity-50"
+                                                        >
+                                                            <span className="text-base">🎉</span>
+                                                            Enviar Boas-vindas
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => handleSendEmail(user.id, 'password_reset', user.full_name)}
+                                                            disabled={emailSending === user.id}
+                                                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700 flex items-center gap-2.5 transition-colors disabled:opacity-50"
+                                                        >
+                                                            <span className="text-base">🔐</span>
+                                                            Enviar Reset de Senha
+                                                        </button>
+
+                                                        <div className="border-t border-gray-100 my-1" />
+
+                                                        <button
+                                                            onClick={() => {
+                                                                setOpenMenuId(null);
+                                                                handleToggleStatus(user.id, user.status);
+                                                            }}
+                                                            className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2.5 transition-colors ${
+                                                                user.status === 'active'
+                                                                    ? 'text-red-600 hover:bg-red-50'
+                                                                    : 'text-green-600 hover:bg-green-50'
+                                                            }`}
+                                                        >
+                                                            {user.status === 'active' ? (
+                                                                <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Inativar</>
+                                                            ) : (
+                                                                <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Ativar</>
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </>
                                             )}
                                         </div>
                                     </td>

@@ -82,6 +82,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
     const [organizationRoleId, setOrganizationRoleId] = useState('');
     const [admissionDate, setAdmissionDate] = useState('');
     const [inactivationDate, setInactivationDate] = useState('');
+    const [sendWelcome, setSendWelcome] = useState(true);
 
     // Additional state for managers list
     const [managers, setManagers] = useState<UserProfile[]>([]);
@@ -104,7 +105,8 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                 .from('profiles')
                 .select('id, full_name, manager_name')
                 .eq('organization_id', orgId)
-                .order('full_name');
+                .order('full_name')
+                .limit(5000);
 
             if (managersData) {
                 setManagers(managersData as any);
@@ -230,6 +232,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                 setPassword('');
                 setConfirmPassword('');
                 setShowPassword(false);
+                setSendWelcome(true);
             }
             // Reset state on open
             setStep(1);
@@ -397,7 +400,8 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                         gender,
                         organizationRoleId: organizationRoleId || null,
                         admissionDate: admissionDate || null,
-                        inactivationDate: inactivationDate || null
+                        inactivationDate: inactivationDate || null,
+                        sendWelcome
                     }),
                 });
 
@@ -439,7 +443,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
     };
 
     return createPortal(
-        <div className="relative z-[9999]" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div className="relative z-9999" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div className="fixed inset-0 bg-black/50 transition-opacity" onClick={onClose}></div>
 
             <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
@@ -719,8 +723,9 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                                                                     // If no sector selected but department is, show jobs for that department (without specific sector)
                                                                     // OR jobs that belong to that department (if your business logic allows selecting any job in dept)
                                                                     // Based on user request "cargo que não tenha setor associado mas seja do departamento selecionado"
+                                                                    // We ALSO need to allow jobs that have NO department_id (created globally by integrations)
                                                                     if (departmentId) {
-                                                                        return job.department_id === departmentId && (!job.sector_id);
+                                                                        return (job.department_id === departmentId || !job.department_id) && (!job.sector_id);
                                                                     }
                                                                     return false;
                                                                 })
@@ -761,6 +766,23 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
                                                             ))}
                                                         </select>
                                                     </div>
+
+                                                    {!userToEdit && (
+                                                        <div className="pt-2">
+                                                            <div className="flex items-center">
+                                                                <input
+                                                                    id="sendWelcome"
+                                                                    type="checkbox"
+                                                                    checked={sendWelcome}
+                                                                    onChange={(e) => setSendWelcome(e.target.checked)}
+                                                                    className="h-4 w-4 text-brand focus:ring-brand border-gray-300 rounded"
+                                                                />
+                                                                <label htmlFor="sendWelcome" className="ml-2 block text-sm text-gray-900">
+                                                                    Enviar email de boas-vindas ao criar usuário
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
 

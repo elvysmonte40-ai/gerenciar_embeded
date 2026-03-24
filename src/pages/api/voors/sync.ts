@@ -155,6 +155,17 @@ async function handleSync(request: Request) {
                     }
                 }
 
+                // Build a Manager Name to ID map based on ALL current profiles
+                const { data: allProfiles } = await supabaseAdmin.from('profiles').select('id, full_name').eq('organization_id', orgId);
+                const nameToProfileIdMap: Record<string, string> = {};
+                if (allProfiles) {
+                    allProfiles.forEach(p => {
+                        if (p.full_name) {
+                            nameToProfileIdMap[p.full_name.trim().toLowerCase()] = p.id;
+                        }
+                    });
+                }
+
                 let createdCount = 0;
                 let updatedCount = 0;
                 let activeCount = 0;
@@ -171,14 +182,33 @@ async function handleSync(request: Request) {
                 // Fetch all auth.users for this org to match by email (using RPC or just matching profiles since we might not have email in profiles)
                 // Wait, we DO NOT have email in profiles easily accessible without admin join, 
                 // but we CAN fetch all auth users from supabaseAdmin to build an email lookup!
-                const { data: usersData, error: usersErr } = await supabaseAdmin.auth.admin.listUsers();
                 const emailToAuthId: Record<string, string> = {};
-                if (!usersErr && usersData?.users) {
+
+                let hasMoreUsers = true;
+                let page = 1;
+                while (hasMoreUsers) {
+                    const { data: usersData, error: usersErr } = await supabaseAdmin.auth.admin.listUsers({
+                        page: page,
+                        perPage: 1000
+                    });
+
+                    if (usersErr || !usersData?.users || usersData.users.length === 0) {
+                        hasMoreUsers = false;
+                        if (usersErr) console.error("Error fetching admin users:", usersErr);
+                        break;
+                    }
+
                     usersData.users.forEach(u => {
                         if (u.email && u.user_metadata?.organization_id === orgId) {
                             emailToAuthId[u.email.toLowerCase()] = u.id;
                         }
                     });
+
+                    if (usersData.users.length < 1000) {
+                        hasMoreUsers = false;
+                    } else {
+                        page++;
+                    }
                 }
 
                 for (const voorsUser of payload) {
@@ -192,7 +222,19 @@ async function handleSync(request: Request) {
                     const profileData: any = {};
                     for (const [vKey, val] of Object.entries(voorsUser)) {
                         const sysCol = mappingDict[vKey];
-                        if (sysCol && val !== null && val !== undefined && val !== "") { // Ignore empty strings
+                        if (sysCol && val !== undefined) {
+                            if (val === null || String(val).trim() === "") {
+                                // Se os dados vierem em branco (nulo ou vazio) do Voors, 
+                                // vamos limpar no banco também para refletir a exclusão (ex: sem cargo, sem departamento)
+                                // CPF e status normalmente não devem ser anulados.
+                                if (sysCol !== 'cpf' && sysCol !== 'status') {
+                                    if (sysCol === 'department' || sysCol === 'department_id') profileData['department_id'] = null;
+                                    else if (sysCol === 'job_title' || sysCol === 'job_title_id') profileData['job_title_id'] = null;
+                                    else profileData[sysCol] = null;
+                                }
+                                continue;
+                            }
+
                             // Translate some generic fields to our system enum if needed
                             if (sysCol === 'status') {
                                 profileData[sysCol] = (val === 'active' || String(val).toLowerCase() === 'ativo') ? 'active' : 'inactive';
@@ -202,6 +244,9 @@ async function handleSync(request: Request) {
                             } else if (sysCol === 'job_title' || sysCol === 'job_title_id') {
                                 // Map by Title to Foreign Key UUID
                                 profileData['job_title_id'] = jobMap[String(val).trim().toLowerCase()] || null;
+                            } else if (sysCol === 'manager_name' || sysCol === 'manager_id') {
+                                profileData['manager_name'] = val;
+                                profileData['manager_id'] = nameToProfileIdMap[String(val).trim().toLowerCase()] || null;
                             } else if (sysCol === 'cpf') {
                                 profileData['cpf'] = userCpfRaw; // APENAS NÚMEROS AQUI
                             } else {

@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { supabase } from "../../../lib/supabase";
+import { sendWelcomeEmail } from "../../../lib/resend";
 
 export const POST: APIRoute = async ({ request, redirect }) => {
   const formData = await request.formData();
@@ -65,6 +66,11 @@ export const POST: APIRoute = async ({ request, redirect }) => {
         { status: 400 }
       );
     }
+
+    // 3. Enviar email de boas-vindas (fire-and-forget)
+    sendWelcomeEmail(email, fullName, organizationId).catch((err) => {
+      console.error("Erro ao enviar email de boas-vindas:", err);
+    });
 
     return redirect("/dashboard?welcome=true");
 

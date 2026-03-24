@@ -253,7 +253,7 @@ const {
     <!-- Synchronous script to prevent FOUC (Flash of Unstyled Content) -->
     <script is:inline>
       try {
-        const isPublicPage = ["/login", "/register", "/"].includes(
+        const isPublicPage = ["/login", "/register", "/", "/forgot-password", "/update-password"].includes(
           window.location.pathname,
         );
         if (isPublicPage) {
@@ -348,6 +348,10 @@ const {
 
       const updateHeader = async () => {
         try {
+          // Pages where we should NOT show user info even if there's a session
+          const authOnlyPages = ["/update-password", "/forgot-password", "/login", "/register"];
+          const isAuthOnlyPage = authOnlyPages.includes(window.location.pathname);
+
           const {
             data: { session },
           } = await supabase.auth.getSession();
@@ -365,12 +369,10 @@ const {
           const navProcesses = document.getElementById("nav-processes");
           const navSettings = document.getElementById("nav-settings");
 
-          if (!session?.user) {
+          if (!session?.user || isAuthOnlyPage) {
             if (userInfo) userInfo.style.display = "none";
-            if (guestButtons) guestButtons.style.display = "flex";
-            if (moduleNav && moduleNav.dataset.authOnly === "true") {
-              moduleNav.style.display = "none";
-            }
+            if (guestButtons) guestButtons.style.display = isAuthOnlyPage ? "none" : "flex";
+            if (moduleNav) moduleNav.style.display = "none";
             return;
           }
 
@@ -522,7 +524,10 @@ const {
             moduleNav.style.display = "none";
           }
         } else if (event === "SIGNED_IN") {
-          updateHeader();
+          const authOnlyPages = ["/update-password", "/forgot-password", "/login", "/register"];
+          if (!authOnlyPages.includes(window.location.pathname)) {
+            updateHeader();
+          }
         }
       });
 

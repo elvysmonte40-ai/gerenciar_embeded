@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabase-admin";
+import { sendWelcomeEmail } from "../../../lib/resend";
 
 export const POST: APIRoute = async ({ request }) => {
     try {
@@ -20,7 +21,7 @@ export const POST: APIRoute = async ({ request }) => {
 
         // Parse Body
         const body = await request.json();
-        const { fullName, email, role, organization_id, cpf, birthDate, jobTitle, department, sector, managerId, gender, password, organizationRoleId } = body;
+        const { fullName, email, role, organization_id, cpf, birthDate, jobTitle, department, sector, managerId, gender, password, organizationRoleId, sendWelcome } = body;
 
         if (!email || !organization_id) {
             return new Response(JSON.stringify({ error: "Email and Organization ID are required" }), { status: 400 });
@@ -77,6 +78,11 @@ export const POST: APIRoute = async ({ request }) => {
 
             if (error) throw error;
             resultData = data;
+        }
+
+        // Send Welcome Email if requested
+        if (sendWelcome) {
+            await sendWelcomeEmail(email, fullName, organization_id);
         }
 
         return new Response(JSON.stringify({ message: password ? "User created successfully" : "User invited successfully", user: resultData.user }), { status: 200 });
