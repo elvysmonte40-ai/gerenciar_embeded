@@ -172,7 +172,7 @@ export default function EmailTemplateEditor() {
 
     if (selectedTemplate) {
         return (
-            <div className="space-y-4">
+            <div className="space-y-4 flex flex-col min-h-full">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -229,7 +229,7 @@ export default function EmailTemplateEditor() {
                 </div>
 
                 {/* Split Editor */}
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4" style={{ height: 'calc(100vh - 360px)' }}>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-[600px]">
                     {/* Code Editor */}
                     <div className="flex flex-col border border-gray-200 rounded-xl overflow-hidden bg-white">
                         <div className="px-4 py-2 bg-gray-800 text-gray-300 text-xs font-mono flex items-center justify-between">

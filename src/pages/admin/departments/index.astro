@@ -1,11 +1,11 @@
 ---
 import AppLayout from "../../../layouts/AppLayout.astro";
 import DepartmentList from "../../../modules/admin/departments/components/DepartmentList";
-import UserSidebar from "../../../modules/users/components/UserSidebar.astro";
+import AdminSidebar from "../../../components/AdminSidebar.astro";
 ---
 
 <AppLayout title="Gerenciar - Departamentos">
-    <UserSidebar slot="sidebar" currentPath="/admin/departments" />
+    <AdminSidebar slot="sidebar" />
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <DepartmentList client:load />

@@ -5,10 +5,10 @@ import CampaignManager from "../../modules/admin/components/CampaignManager.tsx"
 import EmailTemplateEditor from "../../modules/admin/components/EmailTemplateEditor.tsx";
 ---
 
-<AppLayout title="Provedor de Email">
+<AppLayout title="Provedor de Email" fullWidth={true}>
     <AdminSidebar slot="sidebar" />
-    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div class="px-4 sm:px-0">
+    <div class="w-full max-w-[1600px] mx-auto p-6 md:p-8 flex flex-col h-full">
+        <div class="w-full">
             <!-- Tab Navigation -->
             <div class="border-b border-gray-200 mb-6">
                 <nav class="-mb-px flex space-x-8" id="email-tabs">
@@ -28,10 +28,10 @@ import EmailTemplateEditor from "../../modules/admin/components/EmailTemplateEdi
             </div>
 
             <!-- Tab Content -->
-            <div id="tab-templates" class="tab-content">
+            <div id="tab-templates" class="tab-content flex-1 h-full w-full">
                 <EmailTemplateEditor client:load />
             </div>
-            <div id="tab-campaigns" class="tab-content hidden">
+            <div id="tab-campaigns" class="tab-content hidden flex-1 h-full w-full">
                 <CampaignManager client:load />
             </div>
         </div>

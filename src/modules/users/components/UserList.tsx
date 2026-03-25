@@ -75,7 +75,8 @@ export default function UserList() {
             setIsOrgAdmin(isOrgAdmin);
 
             // Carregar lookups de filtros apenas 1 vez após org ser obtida (para evitar props passando na UI)
-            const orgId = session.user.user_metadata.organization_id;
+            const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', session.user.id).single();
+            const orgId = profile?.organization_id || session.user.user_metadata?.organization_id;
             if (orgId) {
                 const [{ data: rData }, { data: dData }, { data: mData }] = await Promise.all([
                     supabase.from('job_titles').select('id, title').eq('organization_id', orgId),
@@ -107,7 +108,8 @@ export default function UserList() {
             }
 
             // 2. Get Organization ID. 
-            const orgId = session.user.user_metadata.organization_id;
+            const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', session.user.id).single();
+            const orgId = profile?.organization_id || session.user.user_metadata?.organization_id;
 
             if (!orgId) {
                 throw new Error("Organização não encontrada para o usuário.");
