@@ -18,7 +18,10 @@ export default function ProfileModal() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
 
+    const [isMounted, setIsMounted] = useState(false);
+
     useEffect(() => {
+        setIsMounted(true);
         const handleOpen = (e: CustomEvent) => {
             const mode = e.detail?.mode || 'profile';
             setActiveTab(mode);
@@ -117,7 +120,7 @@ export default function ProfileModal() {
         }
     };
 
-    if (!isOpen) return null;
+    if (!isMounted || !isOpen) return null;
 
     return createPortal(
         <div className="relative z-100" aria-labelledby="modal-title" role="dialog" aria-modal="true">
