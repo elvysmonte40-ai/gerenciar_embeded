@@ -3,6 +3,7 @@ import AppLayout from "../../layouts/AppLayout.astro";
 import AdminSidebar from "../../components/AdminSidebar.astro";
 import CampaignManager from "../../modules/admin/components/CampaignManager.tsx";
 import EmailTemplateEditor from "../../modules/admin/components/EmailTemplateEditor.tsx";
+import BulkEmailManager from "../../modules/admin/components/BulkEmailManager.tsx";
 ---
 
 <AppLayout title="Provedor de Email" fullWidth={true}>
@@ -24,6 +25,12 @@ import EmailTemplateEditor from "../../modules/admin/components/EmailTemplateEdi
                     >
                         📨 Campanhas
                     </button>
+                    <button
+                        data-tab="bulk"
+                        class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors"
+                    >
+                        📢 Envio em Massa
+                    </button>
                 </nav>
             </div>
 
@@ -33,6 +40,9 @@ import EmailTemplateEditor from "../../modules/admin/components/EmailTemplateEdi
             </div>
             <div id="tab-campaigns" class="tab-content hidden flex-1 h-full w-full">
                 <CampaignManager client:load />
+            </div>
+            <div id="tab-bulk" class="tab-content hidden flex-1 h-full w-full">
+                <BulkEmailManager client:load />
             </div>
         </div>
     </div>

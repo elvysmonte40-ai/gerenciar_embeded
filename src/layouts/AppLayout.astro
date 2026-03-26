@@ -5,6 +5,7 @@ import ProfileModal from "../components/ProfileModal";
 import { SystemMessageManager } from "../components/SystemMessageManager";
 import { NotificationBell } from "../components/NotificationBell";
 import { HelpDeskWidget } from "../components/HelpDeskWidget";
+import { ClientRouter } from "astro:transitions";
 
 interface Props {
   title: string;
@@ -36,6 +37,7 @@ const {
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
     <title>{title} | Gerenciar B2B</title>
+    <ClientRouter />
   </head>
   <body
     class="bg-surface text-text-primary h-screen flex flex-col overflow-hidden"
@@ -76,6 +78,7 @@ const {
                 href="/users"
                 class="text-sm font-medium text-text-secondary hover:text-brand border-b-2 border-transparent hover:border-brand py-4 transition-colors"
                 title="Gestão de Acessos"
+                style="display: none;"
               >
                 Usuários
               </a>
@@ -84,6 +87,7 @@ const {
                 href="/indicators"
                 class="text-sm font-medium text-text-primary hover:text-brand border-b-2 border-transparent hover:border-brand py-4 transition-colors"
                 title="Acompanhamento de Metas"
+                style="display: none;"
               >
                 Indicadores
               </a>
@@ -92,6 +96,7 @@ const {
                 href="/processes"
                 class="text-sm font-medium text-text-primary hover:text-brand border-b-2 border-transparent hover:border-brand py-4 transition-colors"
                 title="Gestão de Processos"
+                style="display: none;"
               >
                 Processos
               </a>
@@ -283,6 +288,16 @@ const {
                 brandContainer.innerHTML = `<span>🔷</span><span id="org-name-header">${tenant.name}</span>`;
               }
             }
+
+            // --- Menu warming optimization (Avoid FOPC/FOUC) ---
+            const permsStr = localStorage.getItem("navPermissions");
+            if (permsStr) {
+              const perms = JSON.parse(permsStr);
+              if (perms.users) document.getElementById("nav-users").style.display = "";
+              if (perms.indicators) document.getElementById("nav-indicators").style.display = "";
+              if (perms.processes) document.getElementById("nav-processes").style.display = "";
+              if (perms.settings) document.getElementById("nav-settings").style.display = "";
+            }
           }
         }
       } catch (e) {}
@@ -417,6 +432,14 @@ const {
           if (navSettings)
             navSettings.style.display = canManageSettings ? "" : "none";
 
+          // Cache permissions to avoid flicker on next load
+          localStorage.setItem("navPermissions", JSON.stringify({
+            users: canViewUsers,
+            indicators: canViewIndicators,
+            processes: canViewProcesses,
+            settings: canManageSettings
+          }));
+
           // Route Protection (Simple client-side check)
           const path = window.location.pathname;
           if (path.startsWith("/users") && !canViewUsers) {
@@ -531,11 +554,16 @@ const {
         }
       });
 
-      updateHeader();
+      // View Transitions support: run updateHeader on every navigation
+      document.addEventListener('astro:page-load', () => {
+        updateHeader();
+      });
 
       window.addEventListener("profile-updated", () => {
         updateHeader();
       });
+
+      updateHeader();
 
       // Dropdown Logic
       const menuButton = document.getElementById("user-menu-button");
@@ -586,6 +614,7 @@ const {
       if (logoutBtn) {
         logoutBtn.addEventListener("click", async () => {
           localStorage.removeItem("tenantContext");
+          localStorage.removeItem("navPermissions");
           await supabase.auth.signOut();
           window.location.href = "/login";
         });
