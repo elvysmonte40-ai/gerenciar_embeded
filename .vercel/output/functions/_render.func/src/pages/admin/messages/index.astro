@@ -1,0 +1,43 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import AdminSidebar from "../../../components/AdminSidebar.astro";
+import { SystemMessageList } from "../../../components/SystemMessageList";
+---
+
+<AppLayout title="Mensagens do Sistema">
+    <AdminSidebar slot="sidebar" />
+
+    <div class="space-y-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-semibold text-text-primary">
+                    Mensagens do Sistema
+                </h1>
+                <p class="mt-1 text-sm text-text-secondary">
+                    Gerencie avisos, comunicados e notificações para os
+                    usuários.
+                </p>
+            </div>
+            <a
+                href="/admin/messages/new"
+                class="inline-flex items-center justify-center rounded-md border border-transparent bg-brand px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 transition-colors"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="-ml-1 mr-2 h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                >
+                    <path
+                        fill-rule="evenodd"
+                        d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                        clip-rule="evenodd"></path>
+                </svg>
+                Nova Mensagem
+            </a>
+        </div>
+
+        <!-- Messages List Component (Client Side) -->
+        <SystemMessageList client:only="react" />
+    </div>
+</AppLayout>

@@ -1,0 +1,158 @@
+---
+import AppLayout from "../layouts/AppLayout.astro";
+---
+
+<AppLayout
+  title="Bem-vindo ao Gerenciar B2B - Gestão Unificada"
+  disableNav={false}
+  showAuthButtons={true}
+  fullWidth={true}
+  authOnlyNav={true}
+  hideSidebar={true}
+>
+  <!-- Hero Section -->
+  <div class="relative overflow-hidden bg-white">
+    <div class="absolute inset-0 z-0 opacity-30">
+      <div
+        class="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]"
+      >
+      </div>
+    </div>
+
+    <div
+      class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24 text-center"
+    >
+      <div
+        class="inline-flex items-center rounded-full px-3 py-1 text-sm leading-6 text-brand ring-1 ring-brand/10 hover:ring-brand/20 bg-brand-light/30 mb-8 transition-colors"
+      >
+        <span class="font-semibold">Novidade</span>
+        <span class="h-4 w-px mx-2 bg-brand/20"></span>
+        <span>Módulo de Metas em breve &rarr;</span>
+      </div>
+
+      <h1
+        class="text-5xl md:text-6xl font-bold tracking-tight text-text-primary mb-6"
+      >
+        Gestão Empresarial <span class="text-brand">Simples e Poderosa</span>
+      </h1>
+
+      <p class="mt-4 text-xl text-text-secondary max-w-2xl mx-auto mb-10">
+        Centralize dashboards, usuários e indicadores em uma única plataforma
+        escalável. Projetado para empresas que buscam eficiência.
+      </p>
+
+      <div class="w-full max-w-lg mx-auto mb-8">
+        <form
+          action="/register"
+          method="GET"
+          class="flex flex-col sm:flex-row gap-3"
+        >
+          <input
+            type="email"
+            name="email"
+            placeholder="Digite seu e-mail corporativo"
+            required
+            class="flex-1 px-5 py-4 text-base md:text-lg border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-brand focus:border-brand outline-none transition-all"
+          />
+          <button
+            type="submit"
+            class="px-8 py-4 bg-brand text-white text-lg font-semibold rounded-lg shadow-md hover:bg-brand-dark hover:shadow-lg transition-all duration-200 whitespace-nowrap"
+          >
+            Começar
+          </button>
+        </form>
+        <div class="text-center mt-4">
+          <span class="text-text-secondary">Já tem uma conta?</span>
+          <a href="/login" class="text-brand font-semibold hover:underline ml-1"
+            >Fazer Login</a
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features Section -->
+  <div class="py-24 bg-surface">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl font-bold text-text-primary mb-4">
+          Tudo que sua empresa precisa
+        </h2>
+        <p class="text-text-secondary text-lg max-w-2xl mx-auto">
+          Ferramentas integradas para impulsionar a produtividade da sua equipe.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Feature 1 -->
+        <div
+          class="p-8 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+        >
+          <div
+            class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-6 text-2xl"
+          >
+            📊
+          </div>
+          <h3 class="text-xl font-semibold text-text-primary mb-3">
+            Power BI Integrado
+          </h3>
+          <p class="text-text-secondary leading-relaxed">
+            Visualize seus dashboards estratégicos DIRETAMENTE na plataforma,
+            sem necessidade de múltiplas senhas.
+          </p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div
+          class="p-8 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+        >
+          <div
+            class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-6 text-2xl"
+          >
+            🔒
+          </div>
+          <h3 class="text-xl font-semibold text-text-primary mb-3">
+            Segurança Enterprise
+          </h3>
+          <p class="text-text-secondary leading-relaxed">
+            Gestão baseada em organizações. Dados isolados e protegidos com RLS
+            (Row Level Security).
+          </p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div
+          class="p-8 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+        >
+          <div
+            class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6 text-2xl"
+          >
+            👥
+          </div>
+          <h3 class="text-xl font-semibold text-text-primary mb-3">
+            Gestão de Equipes
+          </h3>
+          <p class="text-text-secondary leading-relaxed">
+            Convide usuários, defina papéis e gerencie acessos de forma
+            centralizada e intuitiva.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trust/Footer CTA -->
+  <div class="bg-gray-50 border-t border-gray-200 py-16">
+    <div class="max-w-4xl mx-auto text-center px-4">
+      <h2 class="text-2xl font-bold text-text-primary mb-6">
+        Pronto para transformar sua gestão?
+      </h2>
+      <a
+        href="/register"
+        class="text-brand font-semibold hover:text-brand-dark hover:underline text-lg"
+      >
+        Crie sua conta corporativa em segundos &rarr;
+      </a>
+    </div>
+  </div>
+</AppLayout>

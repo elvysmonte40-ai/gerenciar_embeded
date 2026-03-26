@@ -1,0 +1,23 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import AdminSidebar from "../../../components/AdminSidebar.astro";
+import { MigrationManager } from "../../../modules/admin/components/MigrationManager";
+---
+
+<AppLayout title="Migração de Dados | Admin">
+    <AdminSidebar slot="sidebar" />
+
+    <div class="max-w-5xl mx-auto space-y-6">
+        <div>
+            <h1 class="text-2xl font-bold text-text-primary tracking-tight">
+                Migração de Dados
+            </h1>
+            <p class="text-sm text-text-secondary mt-1">
+                Importe e valide dados em lote (Cargos e Usuários) de forma
+                estruturada.
+            </p>
+        </div>
+
+        <MigrationManager client:load />
+    </div>
+</AppLayout>

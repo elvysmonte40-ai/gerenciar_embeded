@@ -1,0 +1,308 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import AdminSidebar from "../../../components/AdminSidebar.astro";
+import PowerBiHelpModal from "../../../components/PowerBiHelpModal.astro";
+
+// Client-side authentication check will be handled by AppLayout script for now,
+// ensuring only admins see this page content or are redirected.
+// Ideally, this should be server-side protected.
+---
+
+<AppLayout title="Configurações do Administrador">
+    <AdminSidebar slot="sidebar" />
+
+    <div class="max-w-3xl mx-auto space-y-8">
+        <!-- Power BI Settings Form -->
+        <div
+            class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
+        >
+            <div
+                class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center"
+            >
+                <div>
+                    <h2
+                        class="text-base font-semibold text-text-primary flex items-center gap-2"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-5 w-5 text-[#F2C811]"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                d="M20 19V9H15V19H20ZM13 19V5H8V19H13ZM6 19V13H1V19H6Z"
+                            ></path>
+                        </svg>
+                        Power BI Embedded
+                    </h2>
+                    <p class="text-xs text-text-secondary mt-1">
+                        Configure as credenciais do Service Principal (App Owns
+                        Data).
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onclick="window.openPowerBiHelp()"
+                    class="text-xs flex items-center text-brand hover:text-brand-dark font-medium"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 mr-1"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        ></path>
+                    </svg>
+                    Guia de Configuração e Tokens
+                </button>
+            </div>
+
+            <form id="pbi-settings-form" class="p-6 space-y-6">
+                <!-- Tenant ID -->
+                <div>
+                    <label
+                        for="pbi_tenant_id"
+                        class="block text-sm font-medium text-text-secondary"
+                        >Directory (Tenant) ID</label
+                    >
+                    <input
+                        type="text"
+                        name="pbi_tenant_id"
+                        id="pbi_tenant_id"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand focus:ring-brand sm:text-sm px-3 py-2 border"
+                        placeholder="ex: 8876a394-..."
+                        required
+                    />
+                </div>
+
+                <!-- Client ID -->
+                <div>
+                    <label
+                        for="pbi_client_id"
+                        class="block text-sm font-medium text-text-secondary"
+                        >Application (Client) ID</label
+                    >
+                    <input
+                        type="text"
+                        name="pbi_client_id"
+                        id="pbi_client_id"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand focus:ring-brand sm:text-sm px-3 py-2 border"
+                        placeholder="ex: 5543b283-..."
+                        required
+                    />
+                </div>
+
+                <!-- Client Secret -->
+                <div>
+                    <label
+                        for="pbi_client_secret"
+                        class="block text-sm font-medium text-text-secondary"
+                        >Client Secret</label
+                    >
+                    <div class="relative mt-1">
+                        <input
+                            type="password"
+                            name="pbi_client_secret"
+                            id="pbi_client_secret"
+                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-brand focus:ring-brand sm:text-sm px-3 py-2 border pr-10"
+                            placeholder="••••••••••••••••"
+                            required
+                        />
+                        <button
+                            type="button"
+                            id="toggle-secret"
+                            class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-gray-600"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                class="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                ></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div
+                    class="pt-4 flex items-center justify-end border-t border-gray-100"
+                >
+                    <div
+                        id="form-feedback"
+                        class="mr-4 text-sm font-medium hidden"
+                    >
+                    </div>
+                    <button
+                        type="submit"
+                        class="inline-flex justify-center rounded-md border border-transparent bg-brand py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 transition-colors disabled:opacity-50"
+                    >
+                        Salvar Configurações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <PowerBiHelpModal />
+</AppLayout>
+
+<script>
+    import { supabase } from "../../../lib/supabase";
+
+    const form = document.getElementById(
+        "pbi-settings-form",
+    ) as HTMLFormElement;
+    const feedback = document.getElementById("form-feedback");
+    const toggleSecretBtn = document.getElementById("toggle-secret");
+    const secretInput = document.getElementById(
+        "pbi_client_secret",
+    ) as HTMLInputElement;
+
+    async function loadSettings() {
+        try {
+            const {
+                data: { session },
+            } = await supabase.auth.getSession();
+
+            if (!session) {
+                window.location.href = "/login";
+                return;
+            }
+
+            // Check role
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("role, organization_id")
+                .eq("id", session.user.id)
+                .single();
+
+            if (!profile || profile.role !== "admin") {
+                alert(
+                    "Acesso negado. Apenas administradores podem acessar esta página.",
+                );
+                window.location.href = "/dashboard";
+                return;
+            }
+
+            // Load Settings
+            const { data: settings, error } = await supabase
+                .from("organization_settings")
+                .select("*")
+                .eq("organization_id", profile.organization_id)
+                .single();
+
+            if (settings) {
+                (
+                    document.getElementById("pbi_tenant_id") as HTMLInputElement
+                ).value = settings.pbi_tenant_id || "";
+                (
+                    document.getElementById("pbi_client_id") as HTMLInputElement
+                ).value = settings.pbi_client_id || "";
+                (
+                    document.getElementById(
+                        "pbi_client_secret",
+                    ) as HTMLInputElement
+                ).value = settings.pbi_client_secret || "";
+            }
+        } catch (e) {
+            console.error("Error loading settings:", e);
+        }
+    }
+
+    // Load on mount
+    loadSettings();
+
+    // Toggle Secret Visibility
+    if (toggleSecretBtn && secretInput) {
+        toggleSecretBtn.addEventListener("click", () => {
+            const type =
+                secretInput.getAttribute("type") === "password"
+                    ? "text"
+                    : "password";
+            secretInput.setAttribute("type", type);
+        });
+    }
+
+    // Save Form
+    if (form) {
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const submitBtn = form.querySelector(
+                'button[type="submit"]',
+            ) as HTMLButtonElement;
+            const originalBtnText = submitBtn.innerText;
+
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerText = "Salvando...";
+
+                const {
+                    data: { session },
+                } = await supabase.auth.getSession();
+                if (!session) throw new Error("No session");
+
+                const { data: profile } = await supabase
+                    .from("profiles")
+                    .select("organization_id")
+                    .eq("id", session.user.id)
+                    .single();
+
+                if (!profile?.organization_id)
+                    throw new Error("No organization");
+
+                const formData = new FormData(form);
+                const updates = {
+                    organization_id: profile.organization_id,
+                    pbi_tenant_id: formData.get("pbi_tenant_id"),
+                    pbi_client_id: formData.get("pbi_client_id"),
+                    pbi_client_secret: formData.get("pbi_client_secret"),
+                    updated_at: new Date().toISOString(),
+                };
+
+                const { error } = await supabase
+                    .from("organization_settings")
+                    .upsert(updates);
+
+                if (error) throw error;
+
+                // Feedback
+                if (feedback) {
+                    feedback.textContent = "Configurações salvas com sucesso!";
+                    feedback.className =
+                        "mr-4 text-sm font-medium text-green-600 block";
+                    setTimeout(() => {
+                        feedback.className = "mr-4 text-sm font-medium hidden";
+                    }, 3000);
+                }
+            } catch (e: any) {
+                console.error("Error saving:", e);
+                if (feedback) {
+                    feedback.textContent = `Erro ao salvar: ${e.message}`;
+                    feedback.className =
+                        "mr-4 text-sm font-medium text-red-600 block";
+                }
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = originalBtnText;
+            }
+        });
+    }
+</script>

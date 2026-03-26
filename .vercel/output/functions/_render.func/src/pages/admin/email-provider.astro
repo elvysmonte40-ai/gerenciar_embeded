@@ -1,0 +1,59 @@
+---
+import AppLayout from "../../layouts/AppLayout.astro";
+import AdminSidebar from "../../components/AdminSidebar.astro";
+import CampaignManager from "../../modules/admin/components/CampaignManager.tsx";
+import EmailTemplateEditor from "../../modules/admin/components/EmailTemplateEditor.tsx";
+---
+
+<AppLayout title="Provedor de Email" fullWidth={true}>
+    <AdminSidebar slot="sidebar" />
+    <div class="w-full max-w-[1600px] mx-auto p-6 md:p-8 flex flex-col h-full">
+        <div class="w-full">
+            <!-- Tab Navigation -->
+            <div class="border-b border-gray-200 mb-6">
+                <nav class="-mb-px flex space-x-8" id="email-tabs">
+                    <button
+                        data-tab="templates"
+                        class="tab-button border-blue-500 text-blue-600 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors"
+                    >
+                        📧 Templates do Sistema
+                    </button>
+                    <button
+                        data-tab="campaigns"
+                        class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors"
+                    >
+                        📨 Campanhas
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Tab Content -->
+            <div id="tab-templates" class="tab-content flex-1 h-full w-full">
+                <EmailTemplateEditor client:load />
+            </div>
+            <div id="tab-campaigns" class="tab-content hidden flex-1 h-full w-full">
+                <CampaignManager client:load />
+            </div>
+        </div>
+    </div>
+</AppLayout>
+
+<script is:inline>
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.dataset.tab;
+
+            // Update buttons
+            document.querySelectorAll('.tab-button').forEach(b => {
+                b.classList.remove('border-blue-500', 'text-blue-600');
+                b.classList.add('border-transparent', 'text-gray-500');
+            });
+            btn.classList.remove('border-transparent', 'text-gray-500');
+            btn.classList.add('border-blue-500', 'text-blue-600');
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById(`tab-${tab}`)?.classList.remove('hidden');
+        });
+    });
+</script>

@@ -1,0 +1,12 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import { ProcessEditor } from "../../../modules/processes/components/editor/ProcessEditor";
+import { ProcessSidebar } from "../../../modules/processes/components/shared/ProcessSidebar";
+
+const { id } = Astro.params;
+---
+
+<AppLayout title="Editor de Processo" fullWidth={true} rawSidebar={true}>
+    <ProcessSidebar client:load slot="sidebar" />
+    <ProcessEditor client:only="react" processId={id} />
+</AppLayout>

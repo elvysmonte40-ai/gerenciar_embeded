@@ -1,0 +1,16 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import AdminSidebar from "../../../components/AdminSidebar.astro";
+import DashboardList from "../../../modules/admin/components/DashboardList";
+
+// Server-side check could be added here similar to settings page
+---
+
+<AppLayout title="Gerenciar Dashboards">
+    <AdminSidebar slot="sidebar" />
+
+    <div class="px-4 py-6 sm:px-0">
+        <!-- Dashboard List Component -->
+        <DashboardList client:load />
+    </div>
+</AppLayout>
