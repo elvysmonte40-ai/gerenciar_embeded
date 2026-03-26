@@ -1,6 +1,0 @@
-import{s as n}from"./supabase.CyU2cgPu.js";const r={users:{view:!1,create:!1,edit:!1,delete:!1},processes:{view:!1,create:!1,edit:!1,delete:!1},indicators:{view:!1,create:!1,edit:!1,delete:!1},profiles:{view:!1,create:!1,edit:!1,delete:!1},contracts:{view:!1,create:!1,edit:!1,delete:!1},organization:{manage_settings:!1}};function c(e,s,a,t=!1){if(t)return!0;if(!e)return!1;const i=e[s];return i?i[a]===!0:!1}function o(e){return e?{users:{...r.users,...e.users},processes:{...r.processes,...e.processes},indicators:{...r.indicators,...e.indicators},profiles:{...r.profiles,...e.profiles},contracts:{...r.contracts,...e.contracts},organization:{...r.organization,...e.organization}}:r}async function u(e){try{const{data:s,error:a}=await n.from("profiles").select(`
-                role,
-                organization_roles (
-                    permissions
-                )
-            `).eq("id",e).single();if(a||!s)return{permissions:r,isOrgAdmin:!1};const t=s.role==="admin",i=Array.isArray(s.organization_roles)?s.organization_roles[0]:s.organization_roles;return{permissions:i?.permissions?o(i.permissions):r,isOrgAdmin:t}}catch(s){return console.error("Error fetching permissions:",s),{permissions:r,isOrgAdmin:!1}}}export{r as DEFAULT_PERMISSIONS,u as fetchUserPermissions,c as hasPermission,o as mergePermissions};
