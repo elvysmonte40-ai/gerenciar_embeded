@@ -4,9 +4,12 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build --verbose",
     "preview": "astro preview",
     "astro": "astro"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "dependencies": {
     "@astrojs/react": "^5.0.1",
