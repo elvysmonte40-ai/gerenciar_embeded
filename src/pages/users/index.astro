@@ -4,10 +4,10 @@ import UserList from "../../modules/users/components/UserList";
 import UserSidebar from "../../modules/users/components/UserSidebar.astro";
 ---
 
-<AppLayout title="Gerenciamento de Usuários">
+<AppLayout title="Gerenciamento de Usuários" fullWidth={true}>
     <UserSidebar slot="sidebar" currentPath="/users" />
 
-    <div class="space-y-6">
+    <div class="px-6 py-6 space-y-6">
         <UserList client:only="react" />
     </div>
 </AppLayout>

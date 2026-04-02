@@ -31,8 +31,9 @@ export interface OrganizationRole {
     name: string;
     description?: string;
     pbi_roles?: string;
+    color?: string;
     can_export_data: boolean;
-    permissions: AppPermissions; // New field
+    permissions: AppPermissions;
     is_active: boolean;
     created_at: string;
     updated_at: string;

@@ -400,25 +400,25 @@ export default function UserList() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th scope="col" className="px-5 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
                                     Usuário
                                 </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th scope="col" className="px-5 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
                                     Função
                                 </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th scope="col" className="px-5 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
                                     Status
                                 </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th scope="col" className="px-5 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
                                     Matrícula
                                 </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th scope="col" className="px-5 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
                                     Cargo/Setor
                                 </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th scope="col" className="px-5 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
                                     Cadastro
                                 </th>
-                                <th scope="col" className="relative px-6 py-3">
+                                <th scope="col" className="relative px-5 py-3">
                                     <span className="sr-only">Ações</span>
                                 </th>
                             </tr>
@@ -426,45 +426,45 @@ export default function UserList() {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {users.map((user) => (
                                 <tr key={user.id} className="hover:bg-gray-50 transition-colors group">
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-5 py-3 whitespace-nowrap">
                                         <div className="flex items-center">
-                                            <div className="flex-shrink-0 h-10 w-10">
-                                                <div className="h-10 w-10 rounded-full bg-brand-light text-brand flex items-center justify-center font-bold text-sm">
+                                            <div className="shrink-0 h-9 w-9">
+                                                <div className="h-9 w-9 rounded-full bg-brand-light text-brand flex items-center justify-center font-bold text-[13px]">
                                                     {user.full_name?.charAt(0).toUpperCase() || 'U'}
                                                 </div>
                                             </div>
-                                            <div className="ml-4">
-                                                <div className="text-sm font-medium text-text-primary">{user.full_name || 'Sem nome'}</div>
+                                            <div className="ml-3">
+                                                <div className="text-sm font-medium text-text-primary" title={user.full_name}>{user.full_name || 'Sem nome'}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'}`}>
+                                    <td className="px-5 py-3 whitespace-nowrap">
+                                        <span className={`px-2 inline-flex text-[11px] leading-5 font-semibold rounded-full ${user.role === 'admin' ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-800'}`}>
                                             {user.role === 'admin' ? 'Admin' : 'Colaborador'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-5 py-3 whitespace-nowrap">
                                         {user.status === 'active' ? (
-                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                            <span className="px-2 inline-flex text-[11px] leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                                 Ativo
                                             </span>
                                         ) : (
-                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                            <span className="px-2 inline-flex text-[11px] leading-4 font-semibold rounded-full bg-red-100 text-red-800">
                                                 Inativo
                                             </span>
                                         )}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <td className="px-5 py-3 whitespace-nowrap text-[13px] text-text-secondary">
                                         {user.employee_id || '-'}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">{user.job_titles?.title || '-'}</div>
-                                        <div className="text-xs text-gray-500">{user.departments?.name || '-'}</div>
+                                    <td className="px-5 py-3 whitespace-nowrap">
+                                        <div className="text-[13px] text-text-primary truncate max-w-[150px]">{user.job_titles?.title || '-'}</div>
+                                        <div className="text-[11px] text-text-secondary truncate max-w-[120px]">{user.departments?.name || '-'}</div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <td className="px-5 py-3 whitespace-nowrap text-[13px] text-text-secondary">
                                         {new Date(user.created_at).toLocaleDateString('pt-BR')}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <td className="px-5 py-3 whitespace-nowrap text-right text-sm font-medium">
                                         <div className="relative flex justify-end">
                                             {emailSending === user.id && (
                                                 <div className="absolute right-8 top-1/2 -translate-y-1/2">
@@ -562,38 +562,28 @@ export default function UserList() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                    <div className="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-                        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div className="bg-gray-50/50 px-4 py-2.5 flex items-center justify-between border-t border-gray-100">
+                        <div className="flex-1 flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-700">
-                                    Página <span className="font-medium">{page}</span> de <span className="font-medium">{totalPages}</span>
+                                <p className="text-[12px] text-gray-500 font-medium">
+                                    Página <span className="text-gray-900">{page}</span> de <span className="text-gray-900">{totalPages}</span>
                                 </p>
                             </div>
-                            <div>
-                                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                                    <button
-                                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                                        disabled={page === 1}
-                                        className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${page === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
-                                    >
-                                        <span className="sr-only">Anterior</span>
-                                        {/* Chevron Left */}
-                                        <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                                        </svg>
-                                    </button>
-                                    <button
-                                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                        disabled={page === totalPages}
-                                        className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${page === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
-                                    >
-                                        <span className="sr-only">Próxima</span>
-                                        {/* Chevron Right */}
-                                        <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                                        </svg>
-                                    </button>
-                                </nav>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={page === 1}
+                                    className={`inline-flex items-center px-3 py-1 rounded-lg border border-gray-200 bg-white text-[12px] font-bold shadow-sm transition-all ${page === 1 ? 'opacity-40 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50 active:scale-95'}`}
+                                >
+                                    Anterior
+                                </button>
+                                <button
+                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={page === totalPages}
+                                    className={`inline-flex items-center px-3 py-1 rounded-lg border border-gray-200 bg-white text-[12px] font-bold shadow-sm transition-all ${page === totalPages ? 'opacity-40 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50 active:scale-95'}`}
+                                >
+                                    Próxima
+                                </button>
                             </div>
                         </div>
                     </div>

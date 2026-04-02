@@ -1,5 +1,6 @@
 ---
 import AppLayout from "../layouts/AppLayout.astro";
+import PasswordStrength from "../components/PasswordStrength";
 ---
 
 <AppLayout title="Criar Conta Empresarial" disableNav={true}>
@@ -138,15 +139,29 @@ import AppLayout from "../layouts/AppLayout.astro";
                                 <label for="password" class="sr-only"
                                     >Senha</label
                                 >
-                                <input
-                                    id="password"
-                                    name="password"
-                                    type="password"
-                                    autocomplete="new-password"
-                                    required
-                                    class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-text-primary focus:outline-none focus:ring-brand focus:border-brand focus:z-10 sm:text-sm"
-                                    placeholder="Senha"
-                                />
+                                <div class="relative">
+                                    <input
+                                        id="password"
+                                        name="password"
+                                        type="password"
+                                        autocomplete="new-password"
+                                        required
+                                        class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-text-primary focus:outline-none focus:ring-brand focus:border-brand focus:z-10 sm:text-sm pr-10"
+                                        placeholder="Senha (mín. 8 caracteres)"
+                                        minlength="8"
+                                    />
+                                    <button
+                                        type="button"
+                                        id="togglePassword"
+                                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                    >
+                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <PasswordStrength client:load password="" />
                             </div>
                         </div>
                     </div>
@@ -155,7 +170,7 @@ import AppLayout from "../layouts/AppLayout.astro";
                 <div>
                     <button
                         type="submit"
-                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand transition-colors"
+                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <span
                             class="absolute left-0 inset-y-0 flex items-center pl-3"
@@ -181,10 +196,46 @@ import AppLayout from "../layouts/AppLayout.astro";
     </div>
 </AppLayout>
 
-<script is:inline>
-    const form = document.getElementById("registerForm");
+<script>
+    import { supabase } from "../lib/supabase";
+
+    const form = document.getElementById("registerForm") as HTMLFormElement;
     const errorDiv = document.getElementById("formError");
     const errorMessage = document.getElementById("errorMessage");
+    const passwordInput = document.getElementById("password") as HTMLInputElement;
+    const button = form?.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+    let isPasswordValid = false;
+
+    // Handle strength validation feedback from the React component
+    window.addEventListener('password-validation', ((e: CustomEvent) => {
+        isPasswordValid = e.detail;
+        if (button) button.disabled = !isPasswordValid;
+    }) as EventListener);
+
+    passwordInput?.addEventListener("input", (e) => {
+        const value = (e.target as HTMLInputElement).value;
+        window.dispatchEvent(new CustomEvent('password-changed', { detail: value }));
+    });
+
+    // Password Toggle Logic
+    const togglePassword = document.getElementById("togglePassword");
+    togglePassword?.addEventListener("click", () => {
+        const type = passwordInput.getAttribute("type") === "password" ? "text" : "password";
+        passwordInput.setAttribute("type", type);
+        
+        // Update Icons
+        if (type === "text") {
+            togglePassword.innerHTML = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+            </svg>`;
+        } else {
+            togglePassword.innerHTML = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>`;
+        }
+    });
 
     // Pre-fill email from URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -201,6 +252,16 @@ import AppLayout from "../layouts/AppLayout.astro";
 
         // Hide error
         if (errorDiv) errorDiv.classList.add("hidden");
+
+        if (!isPasswordValid) {
+            if (errorDiv && errorMessage) {
+                errorMessage.textContent = "A senha não atende aos requisitos mínimos de segurança.";
+                errorDiv.classList.remove("hidden");
+            } else {
+                alert("A senha não atende aos requisitos mínimos de segurança.");
+            }
+            return;
+        }
 
         const formData = new FormData(form);
         const button = form.querySelector('button[type="submit"]');

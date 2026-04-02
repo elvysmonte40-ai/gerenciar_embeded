@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
+import PasswordStrength from './PasswordStrength';
 
 export default function ProfileModal() {
     const [isOpen, setIsOpen] = useState(false);
@@ -17,6 +18,7 @@ export default function ProfileModal() {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [isPasswordValid, setIsPasswordValid] = useState(false);
 
     const [isMounted, setIsMounted] = useState(false);
 
@@ -98,8 +100,8 @@ export default function ProfileModal() {
             return;
         }
 
-        if (password.length < 6) {
-            setMessage({ type: 'error', text: 'A senha deve ter pelo menos 6 caracteres.' });
+        if (password.length < 8 || !isPasswordValid) {
+            setMessage({ type: 'error', text: 'A senha não atende aos requisitos mínimos de segurança.' });
             setLoading(false);
             return;
         }
@@ -207,11 +209,11 @@ export default function ProfileModal() {
                                             <input
                                                 type={showPassword ? "text" : "password"}
                                                 required
-                                                minLength={6}
+                                                minLength={8}
                                                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm pr-10"
                                                 value={password}
                                                 onChange={(e) => setPassword(e.target.value)}
-                                                placeholder="Mínimo 6 caracteres"
+                                                placeholder="Mínimo 8 caracteres"
                                             />
                                             <button
                                                 type="button"
@@ -230,6 +232,7 @@ export default function ProfileModal() {
                                                 )}
                                             </button>
                                         </div>
+                                        <PasswordStrength password={password} onValidationChange={setIsPasswordValid} />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700">Confirmar Nova Senha</label>
@@ -237,7 +240,7 @@ export default function ProfileModal() {
                                             <input
                                                 type={showPassword ? "text" : "password"}
                                                 required
-                                                minLength={6}
+                                                minLength={8}
                                                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand focus:border-brand sm:text-sm pr-10"
                                                 value={confirmPassword}
                                                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -264,10 +267,10 @@ export default function ProfileModal() {
                                     <div className="pt-4 flex justify-end">
                                         <button
                                             type="submit"
-                                            disabled={loading}
+                                            disabled={loading || !isPasswordValid || password !== confirmPassword}
                                             className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-brand text-base font-medium text-white hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand sm:text-sm disabled:opacity-50"
                                         >
-                                            {loading ? 'Redefinir Senha' : 'Redefinir Senha'}
+                                            {loading ? 'Redefinir Senha...' : 'Redefinir Senha'}
                                         </button>
                                     </div>
                                 </form>
@@ -278,7 +281,7 @@ export default function ProfileModal() {
                         <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                             <button
                                 type="button"
-                                className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:w-auto sm:text-sm"
+                                className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 sm:w-auto sm:text-sm"
                                 onClick={() => setIsOpen(false)}
                             >
                                 Fechar
