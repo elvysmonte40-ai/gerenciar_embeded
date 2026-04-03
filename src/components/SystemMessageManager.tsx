@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import type { SystemMessage } from "../types/system-messages";
+import DOMPurify from 'isomorphic-dompurify';
 
 export const SystemMessageManager: React.FC = () => {
     const [messages, setMessages] = useState<SystemMessage[]>([]);
@@ -9,7 +10,12 @@ export const SystemMessageManager: React.FC = () => {
     const [userId, setUserId] = useState<string | null>(null);
 
     useEffect(() => {
-        checkMessages();
+        const isAuthPage = ["/login", "/register", "/forgot-password", "/update-password"].includes(
+            window.location.pathname
+        );
+        if (!isAuthPage) {
+            checkMessages();
+        }
     }, []);
 
     const checkMessages = async () => {
@@ -134,7 +140,7 @@ export const SystemMessageManager: React.FC = () => {
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6 prose prose-sm max-w-none text-text-primary">
-                    <div dangerouslySetInnerHTML={{ __html: message.content }} />
+                    <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(message.content) }} />
                 </div>
 
                 {/* Footer */}

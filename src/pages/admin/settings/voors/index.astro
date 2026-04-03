@@ -244,6 +244,34 @@ import AdminSidebar from "../../../../components/AdminSidebar.astro";
             </div>
         </div>
     </div>
+
+    <!-- Modal de Confirmação -->
+    <dialog id="sync-confirm-modal" class="bg-transparent p-0 m-auto backdrop:bg-gray-900/40 backdrop:backdrop-blur-sm -mt-10 md:mt-0 items-center justify-center rounded-xl shadow-2xl border border-gray-200 w-[90%] max-w-md overflow-hidden relative open:animate-in open:fade-in-0 duration-200">
+        <div class="bg-white w-full">
+            <div class="p-6">
+                <!-- Ícone Circular (Brand) -->
+                <div class="w-12 h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-5">
+                    <svg class="w-6 h-6 text-brand" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                </div>
+                
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Iniciar Sincronização</h3>
+                <p class="text-sm text-gray-600 leading-relaxed mb-6">
+                    Isso iniciará a busca e processamento de usuários da API do Voors utilizando o token configurado. Essa ação irá inserir perfis automaticamente. Deseja continuar?
+                </p>
+                
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" id="btn-cancel-sync" class="inline-flex justify-center rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="button" id="btn-confirm-sync" class="inline-flex justify-center rounded-md border border-transparent bg-brand py-2 px-4 text-sm font-semibold text-white shadow-sm hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 transition-colors">
+                        Sincronizar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </dialog>
 </AppLayout>
 
 <script>
@@ -409,18 +437,60 @@ import AdminSidebar from "../../../../components/AdminSidebar.astro";
     }
 
     // Process Sync Now
-    if (syncBtn) {
-        syncBtn.addEventListener("click", async () => {
-            if (
-                !confirm(
-                    "Isso iniciará a sincronização com o Voors utilizando o token atual. Deseja continuar?",
-                )
-            )
-                return;
+    const syncConfirmModal = document.getElementById("sync-confirm-modal") as HTMLDialogElement;
+    const btnCancelSync = document.getElementById("btn-cancel-sync") as HTMLButtonElement;
+    const btnConfirmSync = document.getElementById("btn-confirm-sync") as HTMLButtonElement;
+
+    if (syncBtn && syncConfirmModal) {
+        syncBtn.addEventListener("click", () => {
+            syncConfirmModal.showModal();
+        });
+
+        btnCancelSync.addEventListener("click", () => {
+            syncConfirmModal.close();
+        });
+
+        btnConfirmSync.addEventListener("click", async () => {
+            syncConfirmModal.close();
 
             try {
                 syncBtn.disabled = true;
                 syncBtn.innerText = "Sincronizando...";
+
+                // Adiciona a linha "Em Execução" otimista na tabela
+                const tbody = document.getElementById("history-table-body");
+                if (tbody) {
+                    const runningRow = document.createElement("tr");
+                    runningRow.id = "sync-running-row";
+                    runningRow.className = "bg-blue-50/50 transition-colors animate-pulse";
+                    runningRow.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${new Date().toLocaleString("pt-BR")}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 flex items-center gap-1 w-fit">
+                                <svg class="animate-spin h-3 w-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Em Execução
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                Sob Demanda
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center font-medium">Extraindo...</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">-</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">-</td>
+                    `;
+                    tbody.insertBefore(runningRow, tbody.firstChild);
+
+                    // Remove a mensagem de "Nenhum histórico" caso exista
+                    const emptyState = tbody.querySelector('td[colspan="6"]');
+                    if (emptyState && emptyState.textContent?.includes("Nenhum histórico") && tbody.children.length > 1) {
+                        emptyState.parentElement?.remove();
+                    }
+                }
 
                 const {
                     data: { session },
@@ -451,6 +521,10 @@ import AdminSidebar from "../../../../components/AdminSidebar.astro";
             } catch (err: any) {
                 console.error(err);
                 showFeedback(`Erro na Sincronização: ${err.message}`, "error");
+                
+                // Remove a linha "Em Execução" caso ocorra erro
+                const runningRow = document.getElementById("sync-running-row");
+                if (runningRow) runningRow.remove();
             } finally {
                 syncBtn.disabled = false;
                 syncBtn.innerText = "Sincronizar Base Agora";

@@ -1,0 +1,25 @@
+---
+const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+---
+
+<div 
+  class="cf-turnstile flex justify-center mb-4" 
+  data-sitekey={siteKey} 
+  data-callback="onTurnstileSuccess" 
+  data-error-callback="onTurnstileError"
+  data-expired-callback="onTurnstileExpired"
+></div>
+
+<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<script is:inline>
+  window.onTurnstileSuccess = function(token) {
+    window.dispatchEvent(new CustomEvent('turnstile-success', { detail: token }));
+  };
+  window.onTurnstileError = function() {
+    window.dispatchEvent(new Event('turnstile-error'));
+  };
+  window.onTurnstileExpired = function() {
+    window.dispatchEvent(new Event('turnstile-expired'));
+  };
+</script>

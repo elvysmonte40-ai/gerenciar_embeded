@@ -1,5 +1,6 @@
 ---
 import AppLayout from "../layouts/AppLayout.astro";
+import TurnstileWidget from "../components/TurnstileWidget.astro";
 ---
 
 <AppLayout title="Acessar Conta" disableNav={true}>
@@ -126,10 +127,12 @@ import AppLayout from "../layouts/AppLayout.astro";
                     </div>
                 </div>
 
+                <TurnstileWidget />
                 <div>
                     <button
                         type="submit"
-                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand transition-colors"
+                        disabled
+                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <span
                             class="absolute left-0 inset-y-0 flex items-center pl-3"
@@ -164,6 +167,19 @@ import AppLayout from "../layouts/AppLayout.astro";
     const errorDiv = document.getElementById("loginError");
     const errorMessage = document.getElementById("errorMessage");
 
+    window.addEventListener('turnstile-success', () => {
+        const btn = form?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+        if (btn) btn.disabled = false;
+    });
+    window.addEventListener('turnstile-error', () => {
+        const btn = form?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+        if (btn) btn.disabled = true;
+    });
+    window.addEventListener('turnstile-expired', () => {
+        const btn = form?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+        if (btn) btn.disabled = true;
+    });
+
     form?.addEventListener("submit", async (e) => {
         e.preventDefault();
 
@@ -182,11 +198,15 @@ import AppLayout from "../layouts/AppLayout.astro";
         const formData = new FormData(form);
         const email = formData.get("email")?.toString() || "";
         const password = formData.get("password")?.toString() || "";
+        const captchaToken = formData.get("cf-turnstile-response")?.toString();
 
         try {
             const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
+                options: {
+                    captchaToken
+                }
             });
 
             if (error) {

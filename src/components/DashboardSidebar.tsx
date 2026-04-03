@@ -137,6 +137,15 @@ export default function DashboardSidebar() {
         }
     }, [isCollapsed]);
 
+    // Auto-minimize after 10 seconds of opening the module or choosing a new dashboard
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsCollapsed(true);
+        }, 10000);
+
+        return () => clearTimeout(timer);
+    }, [currentId]);
+
     useEffect(() => {
         // Simple extraction of ID from query param or path
         const searchParams = new URLSearchParams(window.location.search);

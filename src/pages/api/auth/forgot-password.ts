@@ -1,13 +1,10 @@
 import type { APIRoute } from "astro";
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+import { supabase } from "../../../lib/supabase";
 
 export const POST: APIRoute = async ({ request }) => {
     try {
         const body = await request.json();
-        const { email } = body;
+        const { email, captchaToken } = body;
 
         if (!email) {
             return new Response(
@@ -16,10 +13,9 @@ export const POST: APIRoute = async ({ request }) => {
             );
         }
 
-        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-        const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
             redirectTo: `${new URL(request.url).origin}/update-password`,
+            captchaToken,
         });
 
         if (error) {

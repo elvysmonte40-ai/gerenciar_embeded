@@ -1,6 +1,7 @@
 ---
 import AppLayout from "../layouts/AppLayout.astro";
 import PasswordStrength from "../components/PasswordStrength";
+import TurnstileWidget from "../components/TurnstileWidget.astro";
 ---
 
 <AppLayout title="Criar Conta Empresarial" disableNav={true}>
@@ -167,9 +168,11 @@ import PasswordStrength from "../components/PasswordStrength";
                     </div>
                 </div>
 
+                <TurnstileWidget />
                 <div>
                     <button
                         type="submit"
+                        disabled
                         class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <span
@@ -206,12 +209,26 @@ import PasswordStrength from "../components/PasswordStrength";
     const button = form?.querySelector('button[type="submit"]') as HTMLButtonElement;
 
     let isPasswordValid = false;
+    let isCaptchaValid = false;
 
     // Handle strength validation feedback from the React component
     window.addEventListener('password-validation', ((e: CustomEvent) => {
         isPasswordValid = e.detail;
-        if (button) button.disabled = !isPasswordValid;
+        if (button) button.disabled = !(isPasswordValid && isCaptchaValid);
     }) as EventListener);
+
+    window.addEventListener('turnstile-success', () => {
+        isCaptchaValid = true;
+        if (button) button.disabled = !(isPasswordValid && isCaptchaValid);
+    });
+    window.addEventListener('turnstile-error', () => {
+        isCaptchaValid = false;
+        if (button) button.disabled = true;
+    });
+    window.addEventListener('turnstile-expired', () => {
+        isCaptchaValid = false;
+        if (button) button.disabled = true;
+    });
 
     passwordInput?.addEventListener("input", (e) => {
         const value = (e.target as HTMLInputElement).value;

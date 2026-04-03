@@ -11,6 +11,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
   const fullName = formData.get("fullName")?.toString();
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
+  const captchaToken = formData.get("cf-turnstile-response")?.toString();
 
   if (!companyName || !email || !password || !fullName) {
     return new Response(
@@ -47,6 +48,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
       email,
       password,
       options: {
+        captchaToken,
         data: {
           full_name: fullName,
           organization_id: organizationId,
