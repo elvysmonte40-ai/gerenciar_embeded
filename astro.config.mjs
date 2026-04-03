@@ -11,10 +11,7 @@ export default defineConfig({
   output: 'server',
 
   vite: {
-    plugins: [tailwindcss()],
-    ssr: {
-      noExternal: ['isomorphic-dompurify', 'jsdom', 'html-encoding-sniffer', '@exodus/bytes']
-    }
+    plugins: [tailwindcss()]
   },
 
   integrations: [react()],

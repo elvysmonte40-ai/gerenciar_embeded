@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import type { SystemMessage } from "../types/system-messages";
-import DOMPurify from 'isomorphic-dompurify';
+import sanitizeHtml from 'sanitize-html';
 
 export const SystemMessageManager: React.FC = () => {
     const [messages, setMessages] = useState<SystemMessage[]>([]);
@@ -140,7 +140,14 @@ export const SystemMessageManager: React.FC = () => {
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6 prose prose-sm max-w-none text-text-primary">
-                    <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(message.content) }} />
+                    <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(message.content, {
+                        allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'span', 'u', 's', 'br']),
+                        allowedAttributes: {
+                            ...sanitizeHtml.defaults.allowedAttributes,
+                            '*': ['class', 'style', 'id'],
+                            'img': ['src', 'alt', 'width', 'height']
+                        }
+                    }) }} />
                 </div>
 
                 {/* Footer */}

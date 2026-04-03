@@ -4,7 +4,7 @@ import type { ProcessVersionWithRelations } from '../../../../types/processes';
 import { StatusBadge } from '../shared/StatusBadge';
 import { ApprovalActionPanel } from './ApprovalActionPanel';
 import { supabase } from '../../../../lib/supabase';
-import DOMPurify from 'isomorphic-dompurify';
+import sanitizeHtml from 'sanitize-html';
 
 interface ProcessViewerProps {
     processId?: string;
@@ -109,7 +109,14 @@ export const ProcessViewer: React.FC<ProcessViewerProps> = ({ processId }) => {
                                 )}
                                 <div
                                     className="ml-11 mt-2 text-gray-700"
-                                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(step.description_html || '') }}
+                                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(step.description_html || '', {
+                                        allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'span', 'u', 's', 'br']),
+                                        allowedAttributes: {
+                                            ...sanitizeHtml.defaults.allowedAttributes,
+                                            '*': ['class', 'style', 'id'],
+                                            'img': ['src', 'alt', 'width', 'height']
+                                        }
+                                    }) }}
                                 />
                             </div>
                         ))
