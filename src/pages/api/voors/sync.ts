@@ -3,7 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
-const cronSecret = import.meta.env.CRON_SECRET || 'changeme_in_prod';
+const cronSecret = import.meta.env.CRON_SECRET;
+
+if (!cronSecret) {
+    console.error('CRON_SECRET is not defined in environment variables.');
+}
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: {
@@ -33,7 +37,7 @@ async function handleSync(request: Request) {
         const url = new URL(request.url);
         const queryCronSecret = url.searchParams.get('cron_secret');
 
-        if (internalCronHeader === cronSecret || queryCronSecret === cronSecret) {
+        if (cronSecret && (internalCronHeader === cronSecret || queryCronSecret === cronSecret)) {
             // Cron Job Trigger: Sync all organizations that have auto_sync enabled
             const { data: orgs, error } = await supabaseAdmin
                 .from('voors_settings')

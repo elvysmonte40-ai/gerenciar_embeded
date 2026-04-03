@@ -186,27 +186,18 @@ import PowerBiHelpModal from "../../../components/PowerBiHelpModal.astro";
                 return;
             }
 
-            // Check role
-            const { data: profile } = await supabase
-                .from("profiles")
-                .select("role, organization_id")
-                .eq("id", session.user.id)
-                .single();
+            // Load Settings via Secure Proxy API
+            const response = await fetch("/api/admin/settings", {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            });
 
-            if (!profile || profile.role !== "admin") {
-                alert(
-                    "Acesso negado. Apenas administradores podem acessar esta página.",
-                );
-                window.location.href = "/dashboard";
-                return;
+            if (!response.ok) {
+                throw new Error("Failed to load settings from API");
             }
 
-            // Load Settings
-            const { data: settings, error } = await supabase
-                .from("organization_settings")
-                .select("*")
-                .eq("organization_id", profile.organization_id)
-                .single();
+            const settings = await response.json();
 
             if (settings) {
                 (
@@ -242,7 +233,7 @@ import PowerBiHelpModal from "../../../components/PowerBiHelpModal.astro";
 
     // Save Form
     if (form) {
-        form.addEventListener("submit", async (e) => {
+        form.addEventListener("submit", async (e: any) => {
             e.preventDefault();
 
             const submitBtn = form.querySelector(
@@ -259,29 +250,26 @@ import PowerBiHelpModal from "../../../components/PowerBiHelpModal.astro";
                 } = await supabase.auth.getSession();
                 if (!session) throw new Error("No session");
 
-                const { data: profile } = await supabase
-                    .from("profiles")
-                    .select("organization_id")
-                    .eq("id", session.user.id)
-                    .single();
-
-                if (!profile?.organization_id)
-                    throw new Error("No organization");
-
                 const formData = new FormData(form);
                 const updates = {
-                    organization_id: profile.organization_id,
                     pbi_tenant_id: formData.get("pbi_tenant_id"),
                     pbi_client_id: formData.get("pbi_client_id"),
                     pbi_client_secret: formData.get("pbi_client_secret"),
-                    updated_at: new Date().toISOString(),
                 };
 
-                const { error } = await supabase
-                    .from("organization_settings")
-                    .upsert(updates);
+                const response = await fetch("/api/admin/settings", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify(updates)
+                });
 
-                if (error) throw error;
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || "Failed to save settings");
+                }
 
                 // Feedback
                 if (feedback) {

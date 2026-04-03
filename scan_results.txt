@@ -1,0 +1,282 @@
+{
+  "project": ".",
+  "timestamp": "2026-04-03T17:47:27.259684",
+  "scan_type": "all",
+  "scans": {
+    "dependencies": {
+      "tool": "dependency_scanner",
+      "findings": [
+        {
+          "type": "Missing Lock File",
+          "severity": "high",
+          "message": "yarn: No lock file found. Supply chain integrity at risk."
+        },
+        {
+          "type": "Missing Lock File",
+          "severity": "high",
+          "message": "pnpm: No lock file found. Supply chain integrity at risk."
+        }
+      ],
+      "status": "[OK] Secure"
+    },
+    "secrets": {
+      "tool": "secret_scanner",
+      "findings": [
+        {
+          "file": ".agent\\skills\\vulnerability-scanner\\scripts\\security_scan.py",
+          "type": "Bearer Token",
+          "severity": "critical",
+          "count": 1
+        },
+        {
+          "file": ".vercel\\output\\functions\\_render.func\\src\\pages\\update-password.astro",
+          "type": "Password",
+          "severity": "high",
+          "count": 1
+        },
+        {
+          "file": ".vercel\\output\\static\\_astro\\MigrationManager.CMTuG3M-.js",
+          "type": "Token",
+          "severity": "high",
+          "count": 2
+        },
+        {
+          "file": ".vercel\\output\\static\\_astro\\supabase.CyU2cgPu.js",
+          "type": "Token",
+          "severity": "high",
+          "count": 2
+        },
+        {
+          "file": ".vercel\\output\\static\\_astro\\supabase.CyU2cgPu.js",
+          "type": "JWT Token",
+          "severity": "high",
+          "count": 1
+        },
+        {
+          "file": ".vercel\\output\\static\\_astro\\update-password.astro_astro_type_script_index_0_lang.K2WBsS-Z.js",
+          "type": "Password",
+          "severity": "high",
+          "count": 1
+        },
+        {
+          "file": "src\\pages\\update-password.astro",
+          "type": "Password",
+          "severity": "high",
+          "count": 1
+        },
+        {
+          "file": "src\\pages\\api\\users\\invite.ts",
+          "type": "Token",
+          "severity": "high",
+          "count": 1
+        },
+        {
+          "file": "src\\pages\\api\\users\\update.ts",
+          "type": "Password",
+          "severity": "high",
+          "count": 1
+        }
+      ],
+      "status": "[!!] CRITICAL: Secrets exposed!",
+      "scanned_files": 286,
+      "by_severity": {
+        "critical": 1,
+        "high": 10,
+        "medium": 0
+      }
+    },
+    "code_patterns": {
+      "tool": "pattern_scanner",
+      "findings": [
+        {
+          "file": ".agent\\skills\\vulnerability-scanner\\scripts\\security_scan.py",
+          "line": 63,
+          "pattern": "eval() usage",
+          "severity": "critical",
+          "category": "Code Injection risk",
+          "snippet": "(r'eval\\s*\\(', \"eval() usage\", \"critical\", \"Code Injection risk\"),"
+        },
+        {
+          "file": ".agent\\skills\\vulnerability-scanner\\scripts\\security_scan.py",
+          "line": 64,
+          "pattern": "exec() usage",
+          "severity": "critical",
+          "category": "Code Injection risk",
+          "snippet": "(r'exec\\s*\\(', \"exec() usage\", \"critical\", \"Code Injection risk\"),"
+        },
+        {
+          "file": ".agent\\skills\\vulnerability-scanner\\scripts\\security_scan.py",
+          "line": 70,
+          "pattern": "dangerouslySetInnerHTML",
+          "severity": "high",
+          "category": "XSS risk",
+          "snippet": "(r'dangerouslySetInnerHTML', \"dangerouslySetInnerHTML\", \"high\", \"XSS risk\"),"
+        },
+        {
+          "file": ".agent\\skills\\vulnerability-scanner\\scripts\\security_scan.py",
+          "line": 80,
+          "pattern": "Insecure flag",
+          "severity": "medium",
+          "category": "Security disabled",
+          "snippet": "(r'--insecure', \"Insecure flag\", \"medium\", \"Security disabled\"),"
+        },
+        {
+          "file": ".vercel\\output\\functions\\_render.func\\src\\pages\\login.astro",
+          "line": 223,
+          "pattern": "innerHTML assignment",
+          "severity": "medium",
+          "category": "XSS risk",
+          "snippet": "button.innerHTML = originalButtonText;"
+        },
+        {
+          "file": ".vercel\\output\\functions\\_render.func\\src\\pages\\login.astro",
+          "line": 237,
+          "pattern": "innerHTML assignment",
+          "severity": "medium",
+          "category": "XSS risk",
+          "snippet": "button.innerHTML = originalButtonText;"
+        },
+        {
+          "file": ".vercel\\output\\functions\\_render.func\\src\\pages\\login.astro",
+          "line": 259,
+          "pattern": "innerHTML assignment",
+          "severity": "medium",
+          "category": "XSS risk",
+          "snippet": "this.innerHTML = `<svg class=\"h-5 w-5\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"c"
+        },
+        {
+          "file": ".vercel\\output\\functions\\_render.func\\src\\pages\\login.astro",
+          "line": 263,
+          "pattern": "innerHTML assignment",
+          "severity": "medium",
+          "category": "XSS risk",
+          "snippet": "this.innerHTML = `<svg class=\"h-5 w-5\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"c"
+        },
+        {
+          "file": ".vercel\\output\\functions\\_render.func\\src\\pages\\register.astro",
+          "line": 246,
+          "pattern": "innerHTML assignment",
+          "severity": "medium",
+          "category": "XSS risk",
+          "snippet": "togglePassword.innerHTML = `<svg class=\"h-5 w-5\" fill=\"none\" viewBox=\"0 0 24 24\""
+        },
+        {
+          "file": ".vercel\\output\\functions\\_render.func\\src\\pages\\register.astro",
+          "line": 250,
+          "pattern": "innerHTML assignment",
+          "severity": "medium",
+          "category": "XSS risk",
+          "snippet": "togglePassword.innerHTML = `<svg class=\"h-5 w-5\" fill=\"none\" viewBox=\"0 0 24 24\""
+        },
+        {
+          "file": ".vercel\\output\\functions\\_render.func\\src\\pages\\register.astro",
+          "line": 286,
+          "pattern": "innerHTML assignment",
+          "severity": "medium",
+          "category": "XSS risk",
+          "snippet": "button.innerHTML = \"Criando conta...\";"
+        },
+        {
+          "file": ".vercel\\output\\functions\\_render.func\\src\\pages\\register.astro",
+          "line": 313,
+          "pattern": "innerHTML assignment",
+          "severity": "medium",
+          "category": "XSS risk",
+          "snippet": "button.innerHTML = \"Criar Conta\";"
+        },
+        {
+          "file": ".vercel\\output\\functions\\_render.func\\src\\pages\\register.astro",
+          "line": 329,
+          "pattern": "innerHTML assignment",
+          "severity": "medium",
+          "category": "XSS risk",
+          "snippet": "button.innerHTML = \"Criar Conta\";"
+        },
+        {
+          "file": ".vercel\\output\\functions\\_render.func\\src\\pages\\update-password.astro",
+          "line": 167,
+          "pattern": "innerHTML assignment",
+          "severity": "medium",
+          "category": "XSS risk",
+          "snippet": "togglePassword.innerHTML = `<svg class=\"h-5 w-5\" fill=\"none\" viewBox=\"0 0 24 24\""
+        },
+        {
+          "file": ".vercel\\output\\functions\\_render.func\\src\\pages\\update-password.astro",
+          "line": 171,
+          "pattern": "innerHTML assignment",
+          "severity": "medium",
+          "category": "XSS risk",
+          "snippet": "togglePassword.innerHTML = `<svg class=\"h-5 w-5\" fill=\"none\" viewBox=\"0 0 24 24\""
+        },
+        {
+          "file": ".vercel\\output\\functions\\_render.func\\src\\pages\\admin\\settings\\voors\\index.astro",
+          "line": 345,
+          "pattern": "innerHTML assignment",
+          "severity": "medium",
+          "category": "XSS risk",
+          "snippet": "tbody.innerHTML = `<tr><td colspan=\"6\" class=\"px-6 py-4 text-center text-sm text"
+        },
+        {
+          "file": ".vercel\\output\\functions\\_render.func\\src\\pages\\admin\\settings\\voors\\index.astro",
+          "line": 347,
+          "pattern": "innerHTML assignment",
+          "severity": "medium",
+          "category": "XSS risk",
+          "snippet": "tbody.innerHTML = history"
+        },
+        {
+          "file": ".vercel\\output\\functions\\_render.func\\src\\pages\\admin\\settings\\voors\\index.astro",
+          "line": 466,
+          "pattern": "innerHTML assignment",
+          "severity": "medium",
+          "category": "XSS risk",
+          "snippet": "runningRow.innerHTML = `"
+        },
+        {
+          "file": ".vercel\\output\\static\\_astro\\AppLayout.astro_astro_type_script_index_0_lang.B437-20C.js",
+          "line": 9,
+          "pattern": "innerHTML assignment",
+          "severity": "medium",
+          "category": "XSS risk",
+          "snippet": "`).eq(\"id\",e.user.id).single();if(i?.organizations){const t=Array.isArray(i.orga"
+        },
+        {
+          "file": ".vercel\\output\\static\\_astro\\client.CiWkIqO-.js",
+          "line": 1,
+          "pattern": "dangerouslySetInnerHTML",
+          "severity": "high",
+          "category": "XSS risk",
+          "snippet": "import{r as o}from\"./index.pPNHHtoH.js\";import{c as E}from\"./client.DLk-SJto.js\""
+        }
+      ],
+      "status": "[!!] CRITICAL: 32 dangerous patterns",
+      "scanned_files": 269,
+      "by_category": {
+        "Code Injection risk": 12,
+        "XSS risk": 60,
+        "Security disabled": 1,
+        "SQL Injection risk": 20
+      }
+    },
+    "configuration": {
+      "tool": "config_scanner",
+      "findings": [
+        {
+          "issue": "No security headers configuration found",
+          "severity": "medium",
+          "recommendation": "Configure CSP, HSTS, X-Frame-Options headers"
+        }
+      ],
+      "status": "[?] Minor configuration issues",
+      "checks": {
+        "security_headers_config": false
+      }
+    }
+  },
+  "summary": {
+    "total_findings": 32,
+    "critical": 3,
+    "high": 12,
+    "overall_status": "[!!] CRITICAL ISSUES FOUND"
+  }
+}

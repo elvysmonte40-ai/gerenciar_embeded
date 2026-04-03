@@ -45,7 +45,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
         // For simplicity, we assume the caller has checked permissions or we check 'role' in profiles.
         const { data: requesterProfile } = await supabaseAdmin
             .from('profiles')
-            .select('role')
+            .select('role, organization_id')
             .eq('id', user.id)
             .single();
 
@@ -90,6 +90,21 @@ export const POST: APIRoute = async ({ request, redirect }) => {
                 return new Response(JSON.stringify({ error: 'Error updating profile: ' + updateProfileError.message }), { status: 500 });
             }
         }
+
+        // Insert Audit Log entry for the administrative action
+        await supabaseAdmin.from('audit_logs').insert({
+            organization_id: requesterProfile.organization_id,
+            user_id: user.id,
+            action: 'UPDATE',
+            table_name: 'profiles',
+            record_id: id,
+            new_data: {
+                target_user_id: id,
+                email_changed: !!email,
+                password_changed: !!password,
+                profile_updates: profileUpdates
+            }
+        });
 
         return new Response(JSON.stringify({ success: true }), { status: 200 });
 
