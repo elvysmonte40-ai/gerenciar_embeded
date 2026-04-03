@@ -44,15 +44,22 @@ const MenuSection = ({ menu, isCollapsed, currentId }: { menu: Menu, isCollapsed
             >
                 {isCollapsed ? (
                     <div className="mb-1 relative">
-                        <MenuIcon iconName={menu.icon_name} iconUrl={menu.icon_url} className="h-5 w-5 text-gray-400" />
+                        <MenuIcon 
+                            iconName={menu.icon_name} 
+                            iconUrl={menu.icon_url} 
+                            className={`h-5 w-5 transition-colors ${hasActiveDashboard ? 'text-brand' : 'text-gray-400'}`} 
+                        />
+                        {hasActiveDashboard && (
+                            <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-3 bg-brand rounded-full"></span>
+                        )}
                         <span className={`absolute -bottom-2 -right-2 transform scale-75 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 ${hasActiveDashboard ? 'text-brand' : 'text-gray-400'}`} viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                             </svg>
                         </span>
                     </div>
                 ) : (
-                    <div className="px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                    <div className={`px-3 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 ${hasActiveDashboard ? 'text-brand' : 'text-text-secondary'}`}>
                         <div className="flex items-center gap-2">
                             <MenuIcon iconName={menu.icon_name} iconUrl={menu.icon_url} className="h-4 w-4" />
                             {menu.title}
@@ -86,13 +93,16 @@ const MenuSection = ({ menu, isCollapsed, currentId }: { menu: Menu, isCollapsed
                             key={dashboard.id}
                             href={`/dashboard?id=${dashboard.id}`}
                             title={isCollapsed ? dashboard.name : ""}
-                            className={`block rounded-md transition-colors ${isCollapsed
-                                ? 'p-2 flex justify-center hover:bg-gray-100'
-                                : `px-3 py-2 text-sm font-medium ${currentId === dashboard.id
-                                    ? 'bg-white text-brand border border-gray-200 shadow-sm'
+                            className={`block transition-all duration-200 ${isCollapsed
+                                ? `p-2 flex justify-center rounded-md ${currentId === dashboard.id
+                                    ? 'bg-brand/10 text-brand ring-1 ring-brand/30'
+                                    : 'hover:bg-gray-100'
+                                }`
+                                : `px-3 py-2 text-sm font-medium rounded-r-md ${currentId === dashboard.id
+                                    ? 'bg-brand/5 text-brand font-semibold border-l-4 border-brand -ml-2 pl-2.5'
                                     : 'text-text-secondary hover:bg-gray-100 hover:text-text-primary'
                                 }`
-                                } ${(isCollapsed && currentId === dashboard.id) ? 'bg-white text-brand border border-gray-200 shadow-sm' : ''}`}
+                                }`}
                         >
                             {isCollapsed ? (
                                 // Generic dashboard icon when collapsed

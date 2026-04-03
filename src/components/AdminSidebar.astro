@@ -1,5 +1,19 @@
 ---
+interface Props {
+    activeItem?: string;
+}
 
+const { activeItem } = Astro.props;
+const currentPath = Astro.url.pathname;
+
+const isActive = (path: string, itemKey?: string) => {
+    if (activeItem && itemKey) return activeItem === itemKey;
+    return currentPath === path || currentPath.startsWith(path + "/");
+};
+
+// Styles for active state
+const activeClasses = "bg-brand/5 text-brand font-semibold border-l-4 border-brand pl-2 -ml-2.5";
+const inactiveClasses = "text-text-secondary hover:bg-gray-100 hover:text-text-primary pl-3";
 ---
 
 <div slot="sidebar" class="space-y-4">
@@ -34,19 +48,19 @@
         >
             <a
                 href="/admin/dashboards"
-                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+                class={`block py-2 text-sm transition-all duration-200 rounded-r-md ${isActive("/admin/dashboards", "dashboards") ? activeClasses : inactiveClasses}`}
             >
                 Dashboards
             </a>
             <a
                 href="/admin/settings"
-                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+                class={`block py-2 text-sm transition-all duration-200 rounded-r-md ${isActive("/admin/settings", "settings") ? activeClasses : inactiveClasses}`}
             >
                 Power BI Embedded
             </a>
             <a
                 href="/admin/menus"
-                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+                class={`block py-2 text-sm transition-all duration-200 rounded-r-md ${isActive("/admin/menus", "menus") ? activeClasses : inactiveClasses}`}
             >
                 Menus
             </a>
@@ -84,19 +98,19 @@
         >
             <a
                 href="/admin/departments"
-                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+                class={`block py-2 text-sm transition-all duration-200 rounded-r-md ${isActive("/admin/departments", "departments") ? activeClasses : inactiveClasses}`}
             >
                 Departamentos
             </a>
             <a
                 href="/admin/job-titles"
-                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+                class={`block py-2 text-sm transition-all duration-200 rounded-r-md ${isActive("/admin/job-titles", "job-titles") ? activeClasses : inactiveClasses}`}
             >
                 Cargos
             </a>
             <a
                 href="/admin/sectors"
-                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+                class={`block py-2 text-sm transition-all duration-200 rounded-r-md ${isActive("/admin/sectors", "sectors") ? activeClasses : inactiveClasses}`}
             >
                 Setores
             </a>
@@ -134,61 +148,61 @@
         >
             <a
                 href="/admin/company"
-                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+                class={`block py-2 text-sm transition-all duration-200 rounded-r-md ${isActive("/admin/company", "company") ? activeClasses : inactiveClasses}`}
             >
                 Empresa
             </a>
             <a
                 href="/admin/perfis"
-                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+                class={`block py-2 text-sm transition-all duration-200 rounded-r-md ${isActive("/admin/perfis", "perfis") ? activeClasses : inactiveClasses}`}
             >
                 Perfis
             </a>
             <a
                 href="/admin/subscription"
-                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+                class={`block py-2 text-sm transition-all duration-200 rounded-r-md ${isActive("/admin/subscription", "subscription") ? activeClasses : inactiveClasses}`}
             >
                 Assinatura
             </a>
             <a
                 href="/admin/email-provider"
-                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+                class={`block py-2 text-sm transition-all duration-200 rounded-r-md ${isActive("/admin/email-provider", "email-provider") ? activeClasses : inactiveClasses}`}
             >
                 Provedor de Email
             </a>
             <a
                 href="/admin/settings/emails"
-                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+                class={`block py-2 text-sm transition-all duration-200 rounded-r-md ${isActive("/admin/settings/emails", "email-logs") ? activeClasses : inactiveClasses}`}
             >
                 Logs de Email
             </a>
             <a
                 href="/admin/modules"
-                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+                class={`block py-2 text-sm transition-all duration-200 rounded-r-md ${isActive("/admin/modules", "modules") ? activeClasses : inactiveClasses}`}
             >
                 Módulos
             </a>
             <a
                 href="/admin/messages"
-                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+                class={`block py-2 text-sm transition-all duration-200 rounded-r-md ${isActive("/admin/messages", "messages") ? activeClasses : inactiveClasses}`}
             >
                 Mensagens do Sistema
             </a>
             <a
                 href="/admin/migration"
-                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+                class={`block py-2 text-sm transition-all duration-200 rounded-r-md ${isActive("/admin/migration", "migration") ? activeClasses : inactiveClasses}`}
             >
                 Migração
             </a>
             <a
                 href="/admin/audit-logs"
-                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+                class={`block py-2 text-sm transition-all duration-200 rounded-r-md ${isActive("/admin/audit-logs", "audit-logs") ? activeClasses : inactiveClasses}`}
             >
                 Auditoria (Logs)
             </a>
             <a
                 href="/admin/settings/voors"
-                class="block px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 rounded-md transition-colors"
+                class={`block py-2 text-sm transition-all duration-200 rounded-r-md ${isActive("/admin/settings/voors", "voors") ? activeClasses : inactiveClasses}`}
             >
                 Integração Voors
             </a>
@@ -204,21 +218,32 @@
             if (toggle.hasAttribute("data-initialized")) return;
             toggle.setAttribute("data-initialized", "true");
 
-            // Find elements relative to the toggle button
             const chevron = toggle.querySelector(".chevron");
-            // The content div is the next sibling
-            const content = toggle.nextElementSibling;
+            const content = toggle.nextElementSibling as HTMLElement;
 
             if (!content) return;
+
+            // Check if this group contains an active link
+            const hasActiveLink = content.querySelector(".border-l-4") !== null;
+            
+            // Set initial state based on active link
+            if (hasActiveLink) {
+                toggle.setAttribute("aria-expanded", "true");
+                content.classList.remove("max-h-0", "opacity-0");
+                content.classList.add("max-h-[500px]", "opacity-100");
+                if (chevron) chevron.classList.add("rotate-180");
+            } else {
+                // Keep default or close if not active? 
+                // Let's default to closed for non-active groups if they were previously open but not active.
+                // Or just keep the default HTML state.
+            }
 
             toggle.addEventListener("click", () => {
                 const isExpanded =
                     toggle.getAttribute("aria-expanded") === "true";
 
-                // Toggle state
                 toggle.setAttribute("aria-expanded", String(!isExpanded));
 
-                // Animate content
                 if (isExpanded) {
                     content.classList.remove("max-h-[500px]", "opacity-100");
                     content.classList.add("max-h-0", "opacity-0");
@@ -232,7 +257,6 @@
         });
     }
 
-    // Run setup on page load and after Astro swaps pages
     document.addEventListener("astro:page-load", setupToggles);
     document.addEventListener("DOMContentLoaded", setupToggles);
 </script>
