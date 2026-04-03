@@ -395,7 +395,7 @@ export default function UserList() {
                 </div>
             )}
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
@@ -424,7 +424,7 @@ export default function UserList() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {users.map((user) => (
+                            {users.map((user, index) => (
                                 <tr key={user.id} className="hover:bg-gray-50 transition-colors group">
                                     <td className="px-5 py-3 whitespace-nowrap">
                                         <div className="flex items-center">
@@ -490,7 +490,7 @@ export default function UserList() {
                                             {openMenuId === user.id && (
                                                 <>
                                                     <div className="fixed inset-0 z-30" onClick={() => setOpenMenuId(null)} />
-                                                    <div className="absolute right-0 top-8 z-40 w-52 bg-white rounded-xl shadow-lg border border-gray-200 py-1 animate-fadeIn">
+                                                    <div className={`absolute right-0 ${index >= users.length - 2 && index > 0 ? 'bottom-full mb-1' : 'top-8'} z-40 w-52 bg-white rounded-xl shadow-lg border border-gray-200 py-1 animate-fadeIn`}>
                                                         <button
                                                             onClick={() => {
                                                                 setEditingUser(user);
