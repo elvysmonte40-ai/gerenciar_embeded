@@ -2,14 +2,22 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase configuration missing! Check your .env file.', {
+  console.warn('Supabase client config missing. Ensure PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_ANON_KEY are set in .env', {
     hasUrl: !!supabaseUrl,
     hasKey: !!supabaseAnonKey
   });
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
-export const supabaseAdmin = createClient(supabaseUrl || '', supabaseServiceKey || '');
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-key'
+);
+
+// Server-only admin client — only create when the key is available (server context)
+const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+
+export const supabaseAdmin = supabaseServiceKey
+  ? createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseServiceKey)
+  : supabase; // Fallback to anon client on the client-side (won't have admin privileges)
