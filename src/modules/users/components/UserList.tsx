@@ -55,7 +55,6 @@ export default function UserList() {
     const ITEMS_PER_PAGE = 10;
 
     // Email actions
-    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [emailSending, setEmailSending] = useState<string | null>(null);
     const [emailMessage, setEmailMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -211,7 +210,6 @@ export default function UserList() {
         if (!confirm(`Enviar email de ${typeLabel} para ${userName}?`)) return;
 
         setEmailSending(userId);
-        setOpenMenuId(null);
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error('Sessão expirada');
@@ -400,149 +398,134 @@ export default function UserList() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th scope="col" className="px-5 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
+                                <th scope="col" className="px-4 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
                                     Usuário
                                 </th>
-                                <th scope="col" className="px-5 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
+                                <th scope="col" className="px-4 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
                                     Função
                                 </th>
-                                <th scope="col" className="px-5 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
+                                <th scope="col" className="px-4 py-3 text-center text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
                                     Status
                                 </th>
-                                <th scope="col" className="px-5 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
+                                <th scope="col" className="px-4 py-3 text-center text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
                                     Matrícula
                                 </th>
-                                <th scope="col" className="px-5 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
+                                <th scope="col" className="px-4 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
                                     Cargo/Setor
                                 </th>
-                                <th scope="col" className="px-5 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
+                                <th scope="col" className="px-4 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
                                     Cadastro
                                 </th>
-                                <th scope="col" className="relative px-5 py-3">
-                                    <span className="sr-only">Ações</span>
+                                <th scope="col" className="px-4 py-3 text-right text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
+                                    Ações
                                 </th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {users.map((user, index) => (
                                 <tr key={user.id} className="hover:bg-gray-50 transition-colors group">
-                                    <td className="px-5 py-3 whitespace-nowrap">
+                                    <td className="px-4 py-3 whitespace-nowrap">
                                         <div className="flex items-center">
-                                            <div className="shrink-0 h-9 w-9">
-                                                <div className="h-9 w-9 rounded-full bg-brand-light text-brand flex items-center justify-center font-bold text-[13px]">
+                                            <div className="shrink-0 h-8 w-8">
+                                                <div className="h-8 w-8 rounded-full bg-brand-light text-brand flex items-center justify-center font-bold text-[12px]">
                                                     {user.full_name?.charAt(0).toUpperCase() || 'U'}
                                                 </div>
                                             </div>
                                             <div className="ml-3">
-                                                <div className="text-sm font-medium text-text-primary" title={user.full_name}>{user.full_name || 'Sem nome'}</div>
+                                                <div className="text-[13px] font-semibold text-text-primary truncate max-w-[180px]" title={user.full_name}>{user.full_name || 'Sem nome'}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-5 py-3 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-[11px] leading-5 font-semibold rounded-full ${user.role === 'admin' ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-800'}`}>
+                                    <td className="px-4 py-3 whitespace-nowrap">
+                                        <span className={`px-2 inline-flex text-[10px] leading-4 font-semibold rounded-full ${user.role === 'admin' ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-800'}`}>
                                             {user.role === 'admin' ? 'Admin' : 'Colaborador'}
                                         </span>
                                     </td>
-                                    <td className="px-5 py-3 whitespace-nowrap">
+                                    <td className="px-4 py-3 whitespace-nowrap text-center">
                                         {user.status === 'active' ? (
-                                            <span className="px-2 inline-flex text-[11px] leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                            <span className="px-2 inline-flex text-[10px] leading-4 font-semibold rounded-full bg-green-100 text-green-800">
                                                 Ativo
                                             </span>
                                         ) : (
-                                            <span className="px-2 inline-flex text-[11px] leading-4 font-semibold rounded-full bg-red-100 text-red-800">
+                                            <span className="px-2 inline-flex text-[10px] leading-4 font-semibold rounded-full bg-red-100 text-red-800">
                                                 Inativo
                                             </span>
                                         )}
                                     </td>
-                                    <td className="px-5 py-3 whitespace-nowrap text-[13px] text-text-secondary">
+                                    <td className="px-4 py-3 whitespace-nowrap text-center text-[12px] text-text-secondary font-medium">
                                         {user.employee_id || '-'}
                                     </td>
-                                    <td className="px-5 py-3 whitespace-nowrap">
-                                        <div className="text-[13px] text-text-primary truncate max-w-[150px]">{user.job_titles?.title || '-'}</div>
-                                        <div className="text-[11px] text-text-secondary truncate max-w-[120px]">{user.departments?.name || '-'}</div>
+                                    <td className="px-4 py-3 whitespace-nowrap">
+                                        <div className="text-[12px] font-medium text-text-primary truncate max-w-[140px]">{user.job_titles?.title || '-'}</div>
+                                        <div className="text-[10px] text-text-secondary truncate max-w-[120px]">{user.departments?.name || '-'}</div>
                                     </td>
-                                    <td className="px-5 py-3 whitespace-nowrap text-[13px] text-text-secondary">
+                                    <td className="px-4 py-3 whitespace-nowrap text-[12px] text-text-secondary">
                                         {new Date(user.created_at).toLocaleDateString('pt-BR')}
                                     </td>
-                                    <td className="px-5 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                        <div className="relative flex justify-end">
+                                    <td className="px-4 py-3 whitespace-nowrap text-right">
+                                        <div className="flex justify-end items-center gap-1">
                                             {emailSending === user.id && (
-                                                <div className="absolute right-8 top-1/2 -translate-y-1/2">
-                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                                <div className="mr-1">
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand"></div>
                                                 </div>
                                             )}
+                                            
                                             {hasPermission(permissions, 'users', 'edit', isOrgAdmin) && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setOpenMenuId(openMenuId === user.id ? null : user.id);
-                                                    }}
-                                                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                                                    title="Ações"
-                                                >
-                                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                                                    </svg>
-                                                </button>
-                                            )}
-
-                                            {/* Dropdown Menu */}
-                                            {openMenuId === user.id && (
                                                 <>
-                                                    <div className="fixed inset-0 z-30" onClick={() => setOpenMenuId(null)} />
-                                                    <div className={`absolute right-0 ${index >= users.length - 2 && index > 0 ? 'bottom-full mb-1' : 'top-8'} z-40 w-52 bg-white rounded-xl shadow-lg border border-gray-200 py-1 animate-fadeIn`}>
-                                                        <button
-                                                            onClick={() => {
-                                                                setEditingUser(user);
-                                                                setIsFormOpen(true);
-                                                                setOpenMenuId(null);
-                                                            }}
-                                                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors"
-                                                        >
-                                                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                                            Editar
-                                                        </button>
+                                                    {/* Editar */}
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingUser(user);
+                                                            setIsFormOpen(true);
+                                                        }}
+                                                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-brand transition-all active:scale-95"
+                                                        title="Editar Usuário"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                        </svg>
+                                                    </button>
 
-                                                        <div className="border-t border-gray-100 my-1" />
+                                                    {/* Boas-vindas */}
+                                                    <button
+                                                        onClick={() => handleSendEmail(user.id, 'welcome', user.full_name)}
+                                                        disabled={emailSending === user.id}
+                                                        className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 hover:text-blue-600 transition-all active:scale-95 disabled:opacity-50"
+                                                        title="Enviar Email de Boas-vindas"
+                                                    >
+                                                        <span className="text-[14px]">🎉</span>
+                                                    </button>
 
-                                                        <button
-                                                            onClick={() => handleSendEmail(user.id, 'welcome', user.full_name)}
-                                                            disabled={emailSending === user.id}
-                                                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2.5 transition-colors disabled:opacity-50"
-                                                        >
-                                                            <span className="text-base">🎉</span>
-                                                            Enviar Boas-vindas
-                                                        </button>
+                                                    {/* Reset Senha */}
+                                                    <button
+                                                        onClick={() => handleSendEmail(user.id, 'password_reset', user.full_name)}
+                                                        disabled={emailSending === user.id}
+                                                        className="p-1.5 rounded-lg hover:bg-amber-50 text-amber-500 hover:text-amber-600 transition-all active:scale-95 disabled:opacity-50"
+                                                        title="Enviar Reset de Senha"
+                                                    >
+                                                        <span className="text-[14px]">🔐</span>
+                                                    </button>
 
-                                                        <button
-                                                            onClick={() => handleSendEmail(user.id, 'password_reset', user.full_name)}
-                                                            disabled={emailSending === user.id}
-                                                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700 flex items-center gap-2.5 transition-colors disabled:opacity-50"
-                                                        >
-                                                            <span className="text-base">🔐</span>
-                                                            Enviar Reset de Senha
-                                                        </button>
-
-                                                        <div className="border-t border-gray-100 my-1" />
-
-                                                        <button
-                                                            onClick={() => {
-                                                                setOpenMenuId(null);
-                                                                handleToggleStatus(user.id, user.status);
-                                                            }}
-                                                            className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2.5 transition-colors ${
-                                                                user.status === 'active'
-                                                                    ? 'text-red-600 hover:bg-red-50'
-                                                                    : 'text-green-600 hover:bg-green-50'
-                                                            }`}
-                                                        >
-                                                            {user.status === 'active' ? (
-                                                                <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Inativar</>
-                                                            ) : (
-                                                                <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Ativar</>
-                                                            )}
-                                                        </button>
-                                                    </div>
+                                                    {/* Status Toggle */}
+                                                    <button
+                                                        onClick={() => handleToggleStatus(user.id, user.status)}
+                                                        className={`p-1.5 rounded-lg transition-all active:scale-95 ${
+                                                            user.status === 'active'
+                                                                ? 'hover:bg-red-50 text-red-500 hover:text-red-600'
+                                                                : 'hover:bg-green-50 text-green-500 hover:text-green-600'
+                                                        }`}
+                                                        title={user.status === 'active' ? 'Inativar Usuário' : 'Ativar Usuário'}
+                                                    >
+                                                        {user.status === 'active' ? (
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                                                            </svg>
+                                                        ) : (
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                            </svg>
+                                                        )}
+                                                    </button>
                                                 </>
                                             )}
                                         </div>
