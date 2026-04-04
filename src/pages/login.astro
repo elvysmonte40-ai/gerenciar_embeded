@@ -127,11 +127,10 @@ import TurnstileWidget from "../components/TurnstileWidget.astro";
                     </div>
                 </div>
 
-                <TurnstileWidget />
+                <!-- <TurnstileWidget /> -->
                 <div>
                     <button
                         type="submit"
-                        disabled
                         class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <span
@@ -167,6 +166,7 @@ import TurnstileWidget from "../components/TurnstileWidget.astro";
     const errorDiv = document.getElementById("loginError");
     const errorMessage = document.getElementById("errorMessage");
 
+    /* Desativado temporariamente para testes
     window.addEventListener('turnstile-success', () => {
         const btn = form?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
         if (btn) btn.disabled = false;
@@ -179,6 +179,7 @@ import TurnstileWidget from "../components/TurnstileWidget.astro";
         const btn = form?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
         if (btn) btn.disabled = true;
     });
+    */
 
     form?.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -198,7 +199,7 @@ import TurnstileWidget from "../components/TurnstileWidget.astro";
         const formData = new FormData(form);
         const identifier = formData.get("identifier")?.toString() || "";
         const password = formData.get("password")?.toString() || "";
-        const captchaToken = formData.get("cf-turnstile-response")?.toString();
+        // const captchaToken = formData.get("cf-turnstile-response")?.toString();
 
         try {
             // 1. Lookup Email by CPF or verify existence
@@ -221,7 +222,7 @@ import TurnstileWidget from "../components/TurnstileWidget.astro";
                 email,
                 password,
                 options: {
-                    captchaToken
+                    // captchaToken
                 }
             });
 

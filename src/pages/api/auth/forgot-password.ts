@@ -4,7 +4,7 @@ import { supabase } from "../../../lib/supabase";
 export const POST: APIRoute = async ({ request }) => {
     try {
         const body = await request.json();
-        const { email, captchaToken } = body;
+        const { email /*, captchaToken */ } = body;
 
         if (!email) {
             return new Response(
@@ -15,7 +15,7 @@ export const POST: APIRoute = async ({ request }) => {
 
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
             redirectTo: `${new URL(request.url).origin}/update-password`,
-            captchaToken,
+            // captchaToken,
         });
 
         if (error) {
