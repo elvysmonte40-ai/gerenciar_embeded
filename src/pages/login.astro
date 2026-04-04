@@ -49,15 +49,15 @@ import TurnstileWidget from "../components/TurnstileWidget.astro";
             <form class="mt-8 space-y-6" id="loginForm">
                 <div class="rounded-md shadow-sm -space-y-px">
                     <div class="mb-4">
-                        <label for="email-address" class="sr-only">Email</label>
+                        <label for="identifier" class="sr-only">CPF ou Email</label>
                         <input
-                            id="email-address"
-                            name="email"
-                            type="email"
-                            autocomplete="email"
+                            id="identifier"
+                            name="identifier"
+                            type="text"
+                            autocomplete="username"
                             required
                             class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-text-primary focus:outline-none focus:ring-brand focus:border-brand focus:z-10 sm:text-sm"
-                            placeholder="Email corporativo"
+                            placeholder="CPF ou Email corporativo"
                         />
                     </div>
                     <div>
@@ -196,11 +196,27 @@ import TurnstileWidget from "../components/TurnstileWidget.astro";
         }
 
         const formData = new FormData(form);
-        const email = formData.get("email")?.toString() || "";
+        const identifier = formData.get("identifier")?.toString() || "";
         const password = formData.get("password")?.toString() || "";
         const captchaToken = formData.get("cf-turnstile-response")?.toString();
 
         try {
+            // 1. Lookup Email by CPF or verify existence
+            const lookupRes = await fetch('/api/auth/lookup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ identifier })
+            });
+
+            const lookupData = await lookupRes.json();
+
+            if (!lookupRes.ok) {
+                throw new Error(lookupData.error || "Usuário não cadastrado no sistema.");
+            }
+
+            const email = lookupData.email;
+
+            // 2. Perform actual Sign In
             const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
@@ -213,7 +229,7 @@ import TurnstileWidget from "../components/TurnstileWidget.astro";
                 if (errorDiv && errorMessage) {
                     errorMessage.textContent =
                         error.message === "Invalid login credentials"
-                            ? "Email ou senha incorretos."
+                            ? "Identificador ou senha incorretos."
                             : error.message;
                     errorDiv.classList.remove("hidden");
                 } else {
@@ -225,12 +241,12 @@ import TurnstileWidget from "../components/TurnstileWidget.astro";
                 }
             } else {
                 // Login successful
-                window.location.href = "/users"; // Redirect to users as users requested
+                window.location.href = "/users"; 
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
             if (errorDiv && errorMessage) {
-                errorMessage.textContent = "Erro inesperado. Tente novamente.";
+                errorMessage.textContent = err.message || "Erro inesperado. Tente novamente.";
                 errorDiv.classList.remove("hidden");
             }
             if (button) {
@@ -253,8 +269,6 @@ import TurnstileWidget from "../components/TurnstileWidget.astro";
                 : "password";
         passwordInput.setAttribute("type", type);
 
-        // Toggle Icon
-        // Simple swap logic or just re-render SVG? Since it's vanilla JS, let's swap innerHTML
         if (type === "text") {
             this.innerHTML = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
@@ -264,6 +278,29 @@ import TurnstileWidget from "../components/TurnstileWidget.astro";
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
              </svg>`;
+        }
+    });
+
+    // CPF Formatting Logic
+    const identifierInput = document.getElementById("identifier") as HTMLInputElement;
+    identifierInput?.addEventListener("input", (e) => {
+        const input = e.target as HTMLInputElement;
+        let value = input.value;
+
+        if (value.includes('@')) return;
+
+        let digits = value.replace(/\D/g, '');
+        if (digits.length <= 11) {
+            if (digits.length > 9) {
+                value = digits.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+            } else if (digits.length > 6) {
+                value = digits.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+            } else if (digits.length > 3) {
+                value = digits.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+            } else {
+                value = digits;
+            }
+            input.value = value;
         }
     });
 </script>
