@@ -46,7 +46,7 @@ import TurnstileWidget from "../components/TurnstileWidget.astro";
                 </div>
             </div>
 
-            <form class="mt-8 space-y-6" id="loginForm">
+            <form class="mt-8 space-y-6" id="loginForm" method="POST">
                 <div class="rounded-md shadow-sm -space-y-px">
                     <div class="mb-4">
                         <label for="identifier" class="sr-only">CPF ou Email</label>
@@ -160,148 +160,138 @@ import TurnstileWidget from "../components/TurnstileWidget.astro";
 </AppLayout>
 
 <script>
-    import { supabase } from "../../src/lib/supabase";
+    import { supabase } from "../lib/supabase";
+    
+    console.log("Login module script loading...");
 
-    const form = document.getElementById("loginForm") as HTMLFormElement;
-    const errorDiv = document.getElementById("loginError");
-    const errorMessage = document.getElementById("errorMessage");
+    function initLogin() {
+        const form = document.getElementById("loginForm") as HTMLFormElement;
+        const errorDiv = document.getElementById("loginError");
+        const errorMessage = document.getElementById("errorMessage");
 
-    /* Desativado temporariamente para testes
-    window.addEventListener('turnstile-success', () => {
-        const btn = form?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
-        if (btn) btn.disabled = false;
-    });
-    window.addEventListener('turnstile-error', () => {
-        const btn = form?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
-        if (btn) btn.disabled = true;
-    });
-    window.addEventListener('turnstile-expired', () => {
-        const btn = form?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
-        if (btn) btn.disabled = true;
-    });
-    */
-
-    form?.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        if (errorDiv) errorDiv.classList.add("hidden");
-
-        const button = form.querySelector(
-            'button[type="submit"]',
-        ) as HTMLButtonElement;
-        const originalButtonText = button.innerHTML;
-
-        if (button) {
-            button.innerText = "Entrando...";
-            button.disabled = true;
+        if (!form) {
+            console.error("Login form not found in DOM!");
+            return;
         }
 
-        const formData = new FormData(form);
-        const identifier = formData.get("identifier")?.toString() || "";
-        const password = formData.get("password")?.toString() || "";
-        // const captchaToken = formData.get("cf-turnstile-response")?.toString();
+        console.log("Attaching submit listener");
+        form.addEventListener("submit", async (e) => {
+            console.log("Form submit event triggered");
+            e.preventDefault();
 
-        try {
-            // 1. Lookup Email by CPF or verify existence
-            const lookupRes = await fetch('/api/auth/lookup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ identifier })
-            });
+            if (errorDiv) errorDiv.classList.add("hidden");
 
-            const lookupData = await lookupRes.json();
+            const button = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+            const originalButtonText = button?.innerHTML || "Entrar";
 
-            if (!lookupRes.ok) {
-                throw new Error(lookupData.error || "Usuário não cadastrado no sistema.");
+            if (button) {
+                button.innerText = "Entrando...";
+                button.disabled = true;
             }
 
-            const email = lookupData.email;
+            const formData = new FormData(form);
+            const identifier = formData.get("identifier")?.toString() || "";
+            const password = formData.get("password")?.toString() || "";
 
-            // 2. Perform actual Sign In
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-                options: {
-                    // captchaToken
+            try {
+                // 1. Lookup Email by CPF or verify existence
+                const lookupRes = await fetch('/api/auth/lookup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifier })
+                });
+
+                const lookupData = await lookupRes.json();
+
+                if (!lookupRes.ok) {
+                    throw new Error(lookupData.error || "Usuário não cadastrado no sistema.");
                 }
-            });
 
-            if (error) {
-                if (errorDiv && errorMessage) {
-                    errorMessage.textContent =
-                        error.message === "Invalid login credentials"
-                            ? "Identificador ou senha incorretos."
-                            : error.message;
-                    errorDiv.classList.remove("hidden");
+                const email = lookupData.email;
+
+                // 2. Perform actual Sign In
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+
+                if (error) {
+                    if (errorDiv && errorMessage) {
+                        errorMessage.textContent =
+                            error.message === "Invalid login credentials"
+                                ? "Identificador ou senha incorretos."
+                                : error.message;
+                        errorDiv.classList.remove("hidden");
+                    } else {
+                        alert(error.message);
+                    }
+                    if (button) {
+                        button.innerHTML = originalButtonText;
+                        button.disabled = false;
+                    }
                 } else {
-                    alert(error.message);
+                    // Login successful
+                    window.location.href = "/users"; 
+                }
+            } catch (err: any) {
+                console.error("Login flow error:", err);
+                if (errorDiv && errorMessage) {
+                    errorMessage.textContent = err.message || "Erro inesperado. Tente novamente.";
+                    errorDiv.classList.remove("hidden");
                 }
                 if (button) {
                     button.innerHTML = originalButtonText;
                     button.disabled = false;
                 }
+            }
+        });
+
+        // Password Toggle Logic
+        const togglePassword = document.getElementById("togglePassword");
+        const passwordInput = document.getElementById("password") as HTMLInputElement;
+
+        togglePassword?.addEventListener("click", function () {
+            const type = passwordInput.getAttribute("type") === "password" ? "text" : "password";
+            passwordInput.setAttribute("type", type);
+
+            if (type === "text") {
+                this.innerHTML = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                 </svg>`;
             } else {
-                // Login successful
-                window.location.href = "/users"; 
+                this.innerHTML = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                 </svg>`;
             }
-        } catch (err: any) {
-            console.error(err);
-            if (errorDiv && errorMessage) {
-                errorMessage.textContent = err.message || "Erro inesperado. Tente novamente.";
-                errorDiv.classList.remove("hidden");
+        });
+
+        // CPF Formatting Logic
+        const identifierInput = document.getElementById("identifier") as HTMLInputElement;
+        identifierInput?.addEventListener("input", (e) => {
+            const input = e.target as HTMLInputElement;
+            let value = input.value;
+            if (value.includes('@')) return;
+
+            let digits = value.replace(/\D/g, '');
+            if (digits.length <= 11) {
+                if (digits.length > 9) {
+                    value = digits.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+                } else if (digits.length > 6) {
+                    value = digits.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+                } else if (digits.length > 3) {
+                    value = digits.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+                } else {
+                    value = digits;
+                }
+                input.value = value;
             }
-            if (button) {
-                button.innerHTML = originalButtonText;
-                button.disabled = false;
-            }
-        }
-    });
+        });
+    }
 
-    // Password Toggle Logic
-    const togglePassword = document.getElementById("togglePassword");
-    const passwordInput = document.getElementById(
-        "password",
-    ) as HTMLInputElement;
+    // Call it immediately and also on DOM content loaded as a backup
+    initLogin();
+    document.addEventListener('astro:page-load', initLogin); 
+    document.addEventListener('DOMContentLoaded', initLogin);
 
-    togglePassword?.addEventListener("click", function () {
-        const type =
-            passwordInput.getAttribute("type") === "password"
-                ? "text"
-                : "password";
-        passwordInput.setAttribute("type", type);
-
-        if (type === "text") {
-            this.innerHTML = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-             </svg>`;
-        } else {
-            this.innerHTML = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-             </svg>`;
-        }
-    });
-
-    // CPF Formatting Logic
-    const identifierInput = document.getElementById("identifier") as HTMLInputElement;
-    identifierInput?.addEventListener("input", (e) => {
-        const input = e.target as HTMLInputElement;
-        let value = input.value;
-
-        if (value.includes('@')) return;
-
-        let digits = value.replace(/\D/g, '');
-        if (digits.length <= 11) {
-            if (digits.length > 9) {
-                value = digits.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
-            } else if (digits.length > 6) {
-                value = digits.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
-            } else if (digits.length > 3) {
-                value = digits.replace(/(\d{3})(\d{1,3})/, '$1.$2');
-            } else {
-                value = digits;
-            }
-            input.value = value;
-        }
-    });
 </script>

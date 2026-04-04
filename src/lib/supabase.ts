@@ -4,5 +4,12 @@ const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey || '');
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Supabase configuration missing! Check your .env file.', {
+    hasUrl: !!supabaseUrl,
+    hasKey: !!supabaseAnonKey
+  });
+}
+
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+export const supabaseAdmin = createClient(supabaseUrl || '', supabaseServiceKey || '');
