@@ -24,13 +24,17 @@ export const POST: APIRoute = async ({ request }) => {
             if (cpfToSearch.length === 11) {
                 const { data, error } = await supabaseAdmin
                     .from('profiles')
-                    .select('email')
+                    .select('email, status')
                     .eq('cpf', cpfToSearch)
                     .maybeSingle();
 
                 if (error) {
                     console.error("Lookup CPF Error:", error);
                     return new Response(JSON.stringify({ error: "Erro ao consultar identificador" }), { status: 500 });
+                }
+
+                if (data?.status === 'inactive') {
+                    return new Response(JSON.stringify({ error: "Sua conta está inativa. Entre em contato com o administrador." }), { status: 403 });
                 }
 
                 if (data?.email) {
@@ -47,13 +51,17 @@ export const POST: APIRoute = async ({ request }) => {
         else if (identifier.includes('@')) {
              const { data, error } = await supabaseAdmin
                 .from('profiles')
-                .select('email')
+                .select('email, status')
                 .eq('email', identifier.trim().toLowerCase())
                 .maybeSingle();
 
             if (error) {
                 console.error("Lookup Email Error:", error);
                 return new Response(JSON.stringify({ error: "Erro ao consultar email" }), { status: 500 });
+            }
+
+            if (data?.status === 'inactive') {
+                return new Response(JSON.stringify({ error: "Sua conta está inativa. Entre em contato com o administrador." }), { status: 403 });
             }
 
             if (data?.email) {

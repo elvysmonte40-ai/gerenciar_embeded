@@ -67,16 +67,26 @@ export const POST: APIRoute = async ({ request }) => {
             );
         }
 
-        // Check if account is activated
+        // Check if account is activated AND active
         const { data: profile } = await supabaseAdmin
             .from('profiles')
-            .select('is_activated, organization_id')
+            .select('is_activated, status, organization_id')
             .eq('id', data.user.id)
             .single();
 
         if (!profile?.is_activated) {
             return new Response(
                 JSON.stringify({ error: "Sua conta ainda não foi ativada. Entre em contato com o administrador da sua organização." }),
+                { status: 403, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        if (profile?.status === 'inactive') {
+            // Sign out of auth session since they shouldn't have been able to log in
+            await supabaseAdmin.auth.admin.signOut(data.user.id);
+            
+            return new Response(
+                JSON.stringify({ error: "Sua conta está inativa. Entre em contato com o administrador." }),
                 { status: 403, headers: { "Content-Type": "application/json" } }
             );
         }

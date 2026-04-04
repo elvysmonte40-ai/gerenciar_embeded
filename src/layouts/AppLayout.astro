@@ -464,6 +464,7 @@ const {
             .select(
               `
               full_name,
+              status,
               organizations (
                 name,
                 logo_url,
@@ -473,6 +474,14 @@ const {
             )
             .eq("id", session.user.id)
             .single();
+
+          if (profile?.status === 'inactive') {
+            localStorage.removeItem("tenantContext");
+            localStorage.removeItem("navPermissions");
+            await supabase.auth.signOut();
+            window.location.href = "/login?error=account_inactive";
+            return;
+          }
 
           if (profile?.organizations) {
             // @ts-ignore

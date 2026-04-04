@@ -169,6 +169,14 @@ import TurnstileWidget from "../components/TurnstileWidget.astro";
 
         if (!form) return;
 
+        // Check for error in query params
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        if (error === 'account_inactive' && errorDiv && errorMessage) {
+            errorMessage.textContent = "Sua conta está inativa. Entre em contato com o administrador.";
+            errorDiv.classList.remove("hidden");
+        }
+
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
 

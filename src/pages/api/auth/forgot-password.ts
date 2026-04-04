@@ -14,15 +14,15 @@ export const POST: APIRoute = async ({ request }) => {
             );
         }
 
-        // Check if user is activated before sending reset link
+        // Check if user is activated AND active before sending reset link
         const { data: profile } = await supabaseAdmin
             .from('profiles')
-            .select('is_activated')
+            .select('is_activated, status')
             .eq('email', email.trim().toLowerCase())
             .maybeSingle();
 
-        // If not activated (or not found), silently return success to prevent email enumeration
-        if (!profile?.is_activated) {
+        // If not activated, inactive (or not found), silently return success to prevent email enumeration
+        if (!profile?.is_activated || profile?.status === 'inactive') {
             return new Response(
                 JSON.stringify({
                     success: true,
