@@ -7,22 +7,27 @@ interface AuditLog {
     table_name: string;
     record_id: string;
     created_at: string;
-    profiles: { full_name: string; email: string };
+    profiles: { full_name: string; email: string } | null;
 }
+
+const PAGE_SIZE = 50;
 
 export function AuditLogsViewer() {
     const [logs, setLogs] = useState<AuditLog[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
 
     const [filterTable, setFilterTable] = useState('');
     const [filterAction, setFilterAction] = useState('');
 
     useEffect(() => {
-        fetchLogs();
+        setPage(0);
+        fetchLogs(0);
     }, [filterTable, filterAction]);
 
-    const fetchLogs = async () => {
+    const fetchLogs = async (currentPage: number) => {
         setLoading(true);
         setError(null);
         try {
@@ -33,15 +38,18 @@ export function AuditLogsViewer() {
 
             if (!profile?.organization_id) return;
 
+            const from = currentPage * PAGE_SIZE;
+            const to = from + PAGE_SIZE - 1;
+
             let query = supabase
                 .from('audit_logs')
                 .select(`
                     id, action, table_name, record_id, created_at,
-                    profiles!user_id(full_name, email)
+                    profiles!audit_logs_user_id_profiles_fkey(full_name, email)
                 `)
                 .eq('organization_id', profile.organization_id)
                 .order('created_at', { ascending: false })
-                .limit(100);
+                .range(from, to);
 
             if (filterTable) {
                 query = query.eq('table_name', filterTable);
@@ -52,13 +60,21 @@ export function AuditLogsViewer() {
 
             const { data, error } = await query;
             if (error) throw error;
-            if (data) setLogs(data as any[]);
+            if (data) {
+                setLogs(data as any[]);
+                setHasMore(data.length === PAGE_SIZE);
+            }
         } catch (err: any) {
             console.error(err);
             setError(err.message);
         } finally {
             setLoading(false);
         }
+    };
+
+    const goToPage = (newPage: number) => {
+        setPage(newPage);
+        fetchLogs(newPage);
     };
 
     return (
@@ -93,7 +109,7 @@ export function AuditLogsViewer() {
                         <option value="contracts">Contratos</option>
                     </select>
 
-                    <button onClick={fetchLogs} className="p-2 border border-gray-300 bg-white rounded-md text-gray-500 hover:text-brand hover:border-brand">
+                    <button onClick={() => fetchLogs(page)} className="p-2 border border-gray-300 bg-white rounded-md text-gray-500 hover:text-brand hover:border-brand">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
                         </svg>
@@ -160,6 +176,30 @@ export function AuditLogsViewer() {
                     </tbody>
                 </table>
             </div>
+            {/* Pagination */}
+            {!loading && logs.length > 0 && (
+                <div className="px-6 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-sm text-gray-500">
+                        Página {page + 1}
+                    </span>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => goToPage(page - 1)}
+                            disabled={page === 0}
+                            className="px-3 py-1 text-sm border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            Anterior
+                        </button>
+                        <button
+                            onClick={() => goToPage(page + 1)}
+                            disabled={!hasMore}
+                            className="px-3 py-1 text-sm border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            Próximo
+                        </button>
+                    </div>
+                </div>
+            )}
             {error && (
                 <div className="p-4 bg-red-50 text-red-700 text-sm border-t border-red-100">
                     Ocorreu um erro ao buscar os dados: {error}

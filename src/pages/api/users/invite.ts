@@ -80,9 +80,15 @@ export const POST: APIRoute = async ({ request }) => {
             resultData = data;
         }
 
-        // Send Welcome Email if requested
+        // Send Welcome Email if requested — this activates the account
         if (sendWelcome) {
-            await sendWelcomeEmail(email, fullName, organization_id);
+            const emailResult = await sendWelcomeEmail(email, fullName, organization_id);
+            if (emailResult.success) {
+                await supabaseAdmin
+                    .from('profiles')
+                    .update({ is_activated: true })
+                    .eq('id', resultData.user.id);
+            }
         }
 
         return new Response(JSON.stringify({ message: password ? "User created successfully" : "User invited successfully", user: resultData.user }), { status: 200 });

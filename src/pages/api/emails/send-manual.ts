@@ -62,6 +62,12 @@ export const POST: APIRoute = async ({ request }) => {
             if (!result.success) {
                 return new Response(JSON.stringify({ error: 'Falha ao enviar email de boas-vindas' }), { status: 500 });
             }
+            // Activate account upon successful welcome email
+            await supabaseAdmin
+                .from('profiles')
+                .update({ is_activated: true })
+                .eq('id', userId);
+
             return new Response(JSON.stringify({ success: true, message: `Email de boas-vindas enviado para ${targetEmail}` }), { status: 200 });
         }
 

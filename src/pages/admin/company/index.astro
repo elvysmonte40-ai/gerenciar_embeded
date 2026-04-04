@@ -3,6 +3,7 @@ import AppLayout from "../../../layouts/AppLayout.astro";
 import AdminSidebar from "../../../components/AdminSidebar.astro";
 import { TenantIdentityForm } from "../../../modules/admin/components/TenantIdentityForm";
 import { CompanyDetailsForm } from "../../../modules/admin/components/CompanyDetailsForm";
+import { CorporateDomainsForm } from "../../../modules/admin/components/CorporateDomainsForm";
 ---
 
 <AppLayout title="Configurações da Empresa">
@@ -90,5 +91,42 @@ import { CompanyDetailsForm } from "../../../modules/admin/components/CompanyDet
             </div>
             <TenantIdentityForm client:load />
         </div>
+
+        <!-- Corporate Domains -->
+        <div
+            class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
+        >
+            <div
+                class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center"
+            >
+                <div>
+                    <h2
+                        class="text-base font-semibold text-text-primary flex items-center gap-2"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-5 w-5 text-brand"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                            ></path>
+                        </svg>
+                        Domínios Corporativos
+                    </h2>
+                    <p class="text-xs text-text-secondary mt-1">
+                        Cadastre os domínios de e-mail da empresa para monitoramento
+                        no painel de auditoria.
+                    </p>
+                </div>
+            </div>
+            <CorporateDomainsForm client:load />
+        </div>
     </div>
 </AppLayout>
+

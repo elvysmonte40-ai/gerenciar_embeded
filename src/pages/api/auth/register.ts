@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { supabase } from "../../../lib/supabase";
+import { supabaseAdmin } from "../../../lib/supabase-admin";
 import { sendWelcomeEmail } from "../../../lib/resend";
 
 export const POST: APIRoute = async ({ request, redirect }) => {
@@ -59,9 +60,6 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     });
 
     if (authError) {
-      // Rollback manual (opcional, já que RLS isola a org órfã, mas idealmente deletaríamos)
-      // Como estamos no cliente público/anon, talvez não tenhamos permissão de delete.
-      // Em produção real, usaríamos uma Edge Function para atomicidade.
       console.error("Erro ao criar usuário:", authError);
       return new Response(
         JSON.stringify({ error: authError.message }),
@@ -69,10 +67,20 @@ export const POST: APIRoute = async ({ request, redirect }) => {
       );
     }
 
-    // 3. Enviar email de boas-vindas (fire-and-forget)
-    sendWelcomeEmail(email, fullName, organizationId).catch((err) => {
+    // 3. Enviar email de boas-vindas e ativar conta
+    try {
+      await sendWelcomeEmail(email, fullName, organizationId);
+    } catch (err) {
       console.error("Erro ao enviar email de boas-vindas:", err);
-    });
+    }
+
+    // Auto-registro sempre ativa (admin criou a própria organização)
+    if (authData?.user) {
+      await supabaseAdmin
+        .from('profiles')
+        .update({ is_activated: true })
+        .eq('id', authData.user.id);
+    }
 
     return redirect("/dashboard?welcome=true");
 
