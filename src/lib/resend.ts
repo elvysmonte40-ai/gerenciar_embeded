@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { welcomeEmailTemplate, passwordResetEmailTemplate } from './email-templates';
 
 const apiKey = import.meta.env.RESEND_API_KEY;
-const fromName = import.meta.env.RESEND_FROM_NAME || 'Gerenciar';
+const fromName = import.meta.env.RESEND_FROM_NAME || 'MIS';
 const fromEmail = import.meta.env.RESEND_FROM_EMAIL || 'noreply@tatutec.com.br';
 
 export const resend = apiKey ? new Resend(apiKey) : null;
@@ -67,7 +67,7 @@ async function logEmail(params: {
 export async function sendWelcomeEmail(to: string, fullName: string, organizationId?: string) {
     if (!resend) throw new Error("Resend não configurado.");
 
-    let subject = `Bem-vindo(a) ao Gerenciar, ${fullName.split(' ')[0]}! 🎉`;
+    let subject = `Bem-vindo(a) ao MIS, ${fullName.split(' ')[0]}! 🎉`;
     let html = welcomeEmailTemplate(fullName);
 
     // Tentar buscar template customizado no banco
@@ -114,7 +114,7 @@ export async function sendWelcomeEmail(to: string, fullName: string, organizatio
 export async function sendPasswordResetEmail(to: string, resetUrl: string, organizationId?: string) {
     if (!resend) throw new Error("Resend não configurado.");
 
-    let subject = 'Redefinir sua senha — Gerenciar';
+    let subject = 'Redefinir sua senha — MIS';
     let html = passwordResetEmailTemplate(resetUrl);
 
     // Tentar buscar template customizado

@@ -18,9 +18,7 @@ function baseLayout(content: string): string {
       <td align="center">
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.07);">
           <tr>
-            <td style="background:linear-gradient(135deg,${brandColor},${brandDark});padding:32px 40px;text-align:center;">
-              <span style="font-size:28px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;">🔷 Gerenciar</span>
-            </td>
+              <span style="font-size:28px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;">🔷 MIS</span>
           </tr>
           <tr>
             <td style="padding:40px;">
@@ -30,7 +28,7 @@ function baseLayout(content: string): string {
           <tr>
             <td style="padding:24px 40px;background-color:#f7f8fa;border-top:1px solid #edf2f7;text-align:center;">
               <p style="margin:0;font-size:12px;color:${mutedColor};">
-                © ${new Date().getFullYear()} Gerenciar by Tatutec. Todos os direitos reservados.
+                © ${new Date().getFullYear()} MIS by Tatutec. Todos os direitos reservados.
               </p>
               <p style="margin:8px 0 0;font-size:12px;color:${mutedColor};">
                 Este é um email automático, por favor não responda.
@@ -52,10 +50,10 @@ export function welcomeEmailTemplate(fullName: string): string {
       Bem-vindo(a), ${firstName}! 🎉
     </h1>
     <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:${textColor};">
-      Sua conta no <strong>Gerenciar</strong> foi criada com sucesso. Estamos muito felizes em ter você conosco!
+      Sua conta no <strong>MIS</strong> foi criada com sucesso. Estamos muito felizes em ter você conosco!
     </p>
     <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:${textColor};">
-      Com o Gerenciar você pode:
+      Com o MIS você pode:
     </p>
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:24px;">
       <tr>
@@ -70,8 +68,8 @@ export function welcomeEmailTemplate(fullName: string): string {
     <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;">
       <tr>
         <td style="border-radius:8px;background:linear-gradient(135deg,${brandColor},${brandDark});">
-          <a href="https://gerenciar.tatutec.com.br/login" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;">
-            Acessar o Gerenciar →
+          <a href="https://mis.tatutec.com.br/login" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;">
+            Acessar o MIS →
           </a>
         </td>
       </tr>
@@ -88,7 +86,7 @@ export function passwordResetEmailTemplate(resetUrl: string): string {
       Redefinir sua senha 🔐
     </h1>
     <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:${textColor};">
-      Recebemos uma solicitação para redefinir a senha da sua conta no <strong>Gerenciar</strong>.
+      Recebemos uma solicitação para redefinir a senha da sua conta no <strong>MIS</strong>.
     </p>
     <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:${textColor};">
       Clique no botão abaixo para criar uma nova senha:

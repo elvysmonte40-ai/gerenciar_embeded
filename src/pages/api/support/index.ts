@@ -49,9 +49,9 @@ export const POST: APIRoute = async ({ request }) => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    from: 'Gerenciar Suporte <suporte@gerenciar.com.br>', // Change this to a verified domain
+                    from: 'MIS Suporte <suporte@mis.tatutec.com.br>', // Change this to a verified domain
                     to: ['devs@atingravity.com'], // Change this to your support mail
-                    subject: `[${type.toUpperCase()}] Novo Chamado Gerenciar`,
+                    subject: `[${type.toUpperCase()}] Novo Chamado MIS`,
                     html: emailHtml
                 })
             });

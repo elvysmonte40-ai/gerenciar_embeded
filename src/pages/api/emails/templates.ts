@@ -9,11 +9,11 @@ const supabaseAdmin = createClient(
 
 const DEFAULT_TEMPLATES = {
     welcome: {
-        subject: 'Bem-vindo(a) ao Gerenciar! 🎉',
+        subject: 'Bem-vindo(a) ao MIS! 🎉',
         html_content: welcomeEmailTemplate('{{nome}}'),
     },
     password_reset: {
-        subject: 'Redefinir sua senha — Gerenciar',
+        subject: 'Redefinir sua senha — MIS',
         html_content: passwordResetEmailTemplate('{{reset_url}}'),
     },
 };
