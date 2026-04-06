@@ -1,11 +1,6 @@
 import type { APIRoute } from 'astro';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { welcomeEmailTemplate, passwordResetEmailTemplate } from '../../../lib/email-templates';
-
-const supabaseAdmin = createClient(
-    import.meta.env.PUBLIC_SUPABASE_URL,
-    import.meta.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
 const DEFAULT_TEMPLATES = {
     welcome: {

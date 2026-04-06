@@ -313,6 +313,12 @@ export default function EmailTemplateEditor() {
                 </p>
             </div>
 
+            {message && (
+                <div className={`px-4 py-3 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                    {message.text}
+                </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {templates.map(template => (
                     <button
