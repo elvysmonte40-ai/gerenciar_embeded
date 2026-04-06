@@ -25,6 +25,8 @@ export default function BulkEmailManager() {
     const [filterType, setFilterType] = useState<FilterType>('users');
     const [filterOptions, setFilterOptions] = useState<FilterOption[]>([]);
     const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+    const [onlyCorporateDomains, setOnlyCorporateDomains] = useState(false);
+    const [orgDomains, setOrgDomains] = useState<string[]>([]);
     
     const [loading, setLoading] = useState(false);
     const [fetchingFilters, setFetchingFilters] = useState(false);
@@ -38,6 +40,7 @@ export default function BulkEmailManager() {
     // Fetch initial data
     useEffect(() => {
         fetchTemplates();
+        fetchOrgDomains();
     }, []);
 
     // Update filter options when filterType changes
@@ -47,14 +50,14 @@ export default function BulkEmailManager() {
         setRecipientCount(0);
     }, [filterType]);
 
-    // Resolve recipient count when selected filters change
+    // Resolve recipient count when selected filters change or flag changes
     useEffect(() => {
         if (selectedFilters.length > 0) {
             resolveRecipientCount();
         } else {
             setRecipientCount(0);
         }
-    }, [selectedFilters]);
+    }, [selectedFilters, onlyCorporateDomains]);
 
     // Live preview update
     useEffect(() => {
@@ -83,6 +86,22 @@ export default function BulkEmailManager() {
         }
     };
 
+    const fetchOrgDomains = async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+            const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', session.user.id).single();
+            if (profile?.organization_id) {
+                const { data } = await supabase.from('organization_domains').select('domain').eq('organization_id', profile.organization_id);
+                if (data && data.length > 0) {
+                    setOrgDomains(data.map(d => d.domain.toLowerCase()));
+                }
+            }
+        } catch (err) {
+            console.error('Falha ao carregar domínios corporativos:', err);
+        }
+    };
+
     const fetchFilterOptions = async () => {
         setFetchingFilters(true);
         try {
@@ -101,8 +120,8 @@ export default function BulkEmailManager() {
                     data = jobs?.map(j => ({ id: j.id, name: j.title })) || [];
                     break;
                 case 'users':
-                    const { data: users } = await supabase.from('profiles').select('id, full_name').eq('status', 'active');
-                    data = users?.map(u => ({ id: u.id, name: u.full_name || 'Usuário Sem Nome' })) || [];
+                    const { data: users } = await supabase.from('profiles').select('id, full_name, email').eq('status', 'active');
+                    data = users?.map(u => ({ id: u.id, name: `${u.full_name || 'Sem Nome'} (${u.email || ''})` })) || [];
                     break;
             }
             setFilterOptions(data.sort((a, b) => a.name.localeCompare(b.name)));
@@ -116,12 +135,21 @@ export default function BulkEmailManager() {
     const resolveRecipientCount = async () => {
         setResolvingRecipients(true);
         try {
-            let query = supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'active');
+            let query = supabase.from('profiles').select('id, email', { count: 'exact', head: true }).eq('status', 'active');
             
             if (filterType === 'roles') query = query.in('organization_role_id', selectedFilters);
             else if (filterType === 'departments') query = query.in('department_id', selectedFilters);
             else if (filterType === 'profiles') query = query.in('job_title_id', selectedFilters);
             else if (filterType === 'users') query = query.in('id', selectedFilters);
+            
+            if (onlyCorporateDomains) {
+                if (orgDomains.length === 0) {
+                    setRecipientCount(0);
+                    return;
+                }
+                const orQuery = orgDomains.map(d => `email.ilike.%@${d}`).join(',');
+                query = query.or(orQuery);
+            }
             
             const { count } = await query;
             setRecipientCount(count || 0);
@@ -155,18 +183,20 @@ export default function BulkEmailManager() {
     };
 
     const handleSend = async () => {
+        console.log("handleSend INICIADO");
         if (!subject || !htmlContent || selectedFilters.length === 0) {
+            console.log("Falta preencher campos ou filtros:", { subject: !!subject, htmlContent: !!htmlContent, filtros: selectedFilters.length });
             setMessage({ type: 'error', text: 'Preencha todos os campos e selecione os destinatários.' });
             return;
         }
 
-        if (!confirm(`Confirmar o envio para ${recipientCount} destinatários?`)) return;
-
+        console.log("Passou da validação. Iniciando Loading...");
         setLoading(true);
         setMessage(null);
         
         try {
             const { data: { session } } = await supabase.auth.getSession();
+            console.log("Sessão obtida. Fazendo fetch...");
             const res = await fetch('/api/emails/bulk-send', {
                 method: 'POST',
                 headers: { 
@@ -178,12 +208,14 @@ export default function BulkEmailManager() {
                     htmlContent,
                     filters: {
                         type: filterType,
-                        ids: selectedFilters
+                        ids: selectedFilters,
+                        onlyCorporateDomains // Pass flag to backend
                     },
                     templateType: selectedTemplate
                 })
             });
 
+            console.log("Status da resposta:", res.status);
             const result = await res.json();
             if (!res.ok) throw new Error(result.error || 'Erro ao enviar emails');
 
@@ -192,7 +224,9 @@ export default function BulkEmailManager() {
             // Reset state
             setSelectedFilters([]);
             setRecipientCount(0);
+            setOnlyCorporateDomains(false);
         } catch (err: any) {
+            console.error("Erro capturado no frontend:", err);
             setMessage({ type: 'error', text: err.message });
         } finally {
             setLoading(false);
@@ -217,6 +251,7 @@ export default function BulkEmailManager() {
                         {previewMode ? 'Sair da Pré-visualização' : 'Pré-visualizar E-mail'}
                     </button>
                     <button
+                        type="button"
                         onClick={handleSend}
                         disabled={loading || recipientCount === 0 || !subject || !htmlContent}
                         className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-indigo-100"
@@ -320,7 +355,7 @@ export default function BulkEmailManager() {
                             </div>
 
                             {/* Tipo de Filtro */}
-                            <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6">
+                            <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-4">
                                 {[
                                     { id: 'roles', label: 'Perfis', icon: Shield },
                                     { id: 'profiles', label: 'Cargos', icon: Briefcase },
@@ -339,6 +374,26 @@ export default function BulkEmailManager() {
                                     </button>
                                 ))}
                             </div>
+
+                            {/* Corporate Domains Toggle */}
+                            {orgDomains.length > 0 && (
+                                <div className="mb-4 p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 flex items-center justify-between">
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-semibold text-indigo-900">Apenas Domínios Corporativos</span>
+                                        <span className="text-[10px] text-indigo-500">Limitar aos domínios cadastrados</span>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            value="" 
+                                            className="sr-only peer"
+                                            checked={onlyCorporateDomains}
+                                            onChange={(e) => setOnlyCorporateDomains(e.target.checked)}
+                                        />
+                                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                                    </label>
+                                </div>
+                            )}
 
                             {/* Lista de Opções */}
                             <div className="flex-1 overflow-y-auto space-y-2 min-h-[300px] max-h-[500px] pr-1">

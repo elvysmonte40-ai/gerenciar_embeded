@@ -36,11 +36,27 @@ export const POST: APIRoute = async ({ request }) => {
             .eq('status', 'active')
             .not('email', 'is', null);
         
-        const { type, ids } = filters;
+        const { type, ids, onlyCorporateDomains } = filters;
         if (type === 'roles') query = query.in('organization_role_id', ids);
         else if (type === 'departments') query = query.in('department_id', ids);
         else if (type === 'profiles') query = query.in('job_title_id', ids);
         else if (type === 'users') query = query.in('id', ids);
+
+        if (onlyCorporateDomains) {
+            const { data: orgDomains } = await supabaseAdmin
+                .from('organization_domains')
+                .select('domain')
+                .eq('organization_id', profile.organization_id);
+
+            const domains = orgDomains?.map(d => d.domain.toLowerCase()) || [];
+
+            if (domains.length === 0) {
+                throw new Error("Nenhum domínio corporativo cadastrado para esta organização.");
+            }
+
+            const orQuery = domains.map(d => `email.ilike.%@${d}`).join(',');
+            query = query.or(orQuery);
+        }
 
         const { data: profiles, error: queryError } = await query;
         if (queryError) throw queryError;
