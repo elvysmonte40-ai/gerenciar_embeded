@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabase-admin";
-import { sendWelcomeEmail } from "../../../lib/resend";
+import { sendWelcomeWithPasswordReset } from "../../../lib/resend";
 
 export const POST: APIRoute = async ({ request }) => {
     try {
@@ -80,9 +80,20 @@ export const POST: APIRoute = async ({ request }) => {
             resultData = data;
         }
 
-        // Send Welcome Email if requested — this activates the account
+        // Send Welcome Email with password setup link — this activates the account
         if (sendWelcome) {
-            const emailResult = await sendWelcomeEmail(email, fullName, organization_id);
+            const baseUrl = import.meta.env.PUBLIC_SITE_URL || 'https://mis.online.net.br';
+            const { data: resetData } = await supabaseAdmin.auth.admin.generateLink({
+                type: 'recovery',
+                email,
+                options: {
+                    redirectTo: `${baseUrl}/update-password`,
+                },
+            });
+
+            const resetUrl = resetData?.properties?.action_link || `${baseUrl}/login`;
+            const emailResult = await sendWelcomeWithPasswordReset(email, fullName, resetUrl, organization_id);
+
             if (emailResult.success) {
                 await supabaseAdmin
                     .from('profiles')

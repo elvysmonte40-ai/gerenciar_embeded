@@ -58,26 +58,48 @@ export const POST: APIRoute = async ({ request }) => {
         const fullName = profile?.full_name || 'Usuário';
 
         if (type === 'welcome') {
-            const result = await sendWelcomeEmail(targetEmail, fullName, orgId);
+            // Para boas-vindas, geramos um link de recuperação para o usuário configurar a senha
+            const baseUrl = import.meta.env.PUBLIC_SITE_URL || new URL(request.url).origin;
+            const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+                type: 'recovery',
+                email: targetEmail,
+                options: {
+                    redirectTo: `${baseUrl}/update-password`,
+                },
+            });
+
+            if (resetError) {
+                console.warn('Falha ao gerar link de setup, enviando boas-vindas simples:', resetError.message);
+            }
+
+            const resetUrl = resetData?.properties?.action_link || '';
+            
+            // Importação dinâmica para evitar loops e usar a nova função que vamos criar
+            const { sendWelcomeWithPasswordReset } = await import('../../../lib/resend');
+            
+            const result = await sendWelcomeWithPasswordReset(targetEmail, fullName, resetUrl, orgId);
+            
             if (!result.success) {
                 return new Response(JSON.stringify({ error: 'Falha ao enviar email de boas-vindas' }), { status: 500 });
             }
-            // Activate account upon successful welcome email
+            
+            // Ativa a conta
             await supabaseAdmin
                 .from('profiles')
                 .update({ is_activated: true })
                 .eq('id', userId);
 
-            return new Response(JSON.stringify({ success: true, message: `Email de boas-vindas enviado para ${targetEmail}` }), { status: 200 });
+            return new Response(JSON.stringify({ success: true, message: `Email de boas-vindas com setup enviado para ${targetEmail}` }), { status: 200 });
         }
 
         if (type === 'password_reset') {
             // Use Supabase Auth to generate reset link
+            const baseUrl = import.meta.env.PUBLIC_SITE_URL || new URL(request.url).origin;
             const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
                 type: 'recovery',
                 email: targetEmail,
                 options: {
-                    redirectTo: `${new URL(request.url).origin}/update-password`,
+                    redirectTo: `${baseUrl}/update-password`,
                 },
             });
 

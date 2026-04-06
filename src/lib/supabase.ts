@@ -15,9 +15,9 @@ export const supabase = createClient(
   supabaseAnonKey || 'placeholder-key'
 );
 
-// Server-only admin client — only create when the key is available (server context)
+// Server-only admin client — only create when the key is available
 const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
 
-export const supabaseAdmin = supabaseServiceKey
+export const supabaseAdmin = (typeof process !== 'undefined' && supabaseServiceKey)
   ? createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseServiceKey)
-  : supabase; // Fallback to anon client on the client-side (won't have admin privileges)
+  : null; // Never expose admin client to the browser

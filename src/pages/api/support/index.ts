@@ -49,7 +49,7 @@ export const POST: APIRoute = async ({ request }) => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    from: 'MIS Suporte <suporte@mis.tatutec.com.br>', // Change this to a verified domain
+                    from: 'MIS Suporte <suporte@mis.online.net.br>', // Verified domain
                     to: ['devs@atingravity.com'], // Change this to your support mail
                     subject: `[${type.toUpperCase()}] Novo Chamado MIS`,
                     html: emailHtml

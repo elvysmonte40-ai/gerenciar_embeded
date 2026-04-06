@@ -179,7 +179,8 @@ export default function BulkEmailManager() {
                     filters: {
                         type: filterType,
                         ids: selectedFilters
-                    }
+                    },
+                    templateType: selectedTemplate
                 })
             });
 
@@ -230,7 +231,7 @@ export default function BulkEmailManager() {
                 <div className={`p-4 rounded-xl border flex items-center gap-3 animate-in zoom-in-95 duration-300 ${
                     message.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'
                 }`}>
-                    {message.type === 'success' ? <CheckCircle2 className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+                    {message.type === 'success' ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
                     <span className="text-sm font-medium">{message.text}</span>
                 </div>
             )}
@@ -360,7 +361,7 @@ export default function BulkEmailManager() {
                                             }`}
                                         >
                                             <span className="truncate">{opt.name}</span>
-                                            {selectedFilters.includes(opt.id) && <CheckCircle2 className="w-4 h-4 flex-shrink-0" />}
+                                            {selectedFilters.includes(opt.id) && <CheckCircle2 className="w-4 h-4 shrink-0" />}
                                         </button>
                                     ))
                                 )}

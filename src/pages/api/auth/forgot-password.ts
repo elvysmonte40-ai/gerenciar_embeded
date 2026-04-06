@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
-import { supabase } from "../../../lib/supabase";
 import { supabaseAdmin } from "../../../lib/supabase-admin";
+import { sendPasswordResetEmail } from "../../../lib/resend";
 
 export const POST: APIRoute = async ({ request }) => {
     try {
@@ -17,7 +17,7 @@ export const POST: APIRoute = async ({ request }) => {
         // Check if user is activated AND active before sending reset link
         const { data: profile } = await supabaseAdmin
             .from('profiles')
-            .select('is_activated, status')
+            .select('id, is_activated, status, organization_id')
             .eq('email', email.trim().toLowerCase())
             .maybeSingle();
 
@@ -32,36 +32,54 @@ export const POST: APIRoute = async ({ request }) => {
             );
         }
 
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${new URL(request.url).origin}/update-password`,
-            // captchaToken,
+        const baseUrl = import.meta.env.PUBLIC_SITE_URL || 'https://mis.online.net.br';
+
+        // Generate a recovery link via Supabase Admin API
+        const { data: resetData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'recovery',
+            email: email.trim().toLowerCase(),
+            options: {
+                redirectTo: `${baseUrl}/update-password`,
+            },
         });
 
-        if (error) {
-            console.error("Erro ao solicitar redefinição:", error);
+        if (linkError) {
+            console.error("Erro ao gerar link de reset:", linkError);
             // Return success regardless to prevent email enumeration
-        } else {
-            // Log password reset event
-            const ipAddress = request.headers.get('x-forwarded-for')
-                || request.headers.get('x-real-ip')
-                || 'unknown';
-            const userAgent = request.headers.get('user-agent') || 'unknown';
+            return new Response(
+                JSON.stringify({
+                    success: true,
+                    message: "Se o email estiver cadastrado, você receberá um link de redefinição."
+                }),
+                { status: 200, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
 
-            const { data: fullProfile } = await supabaseAdmin
-                .from('profiles')
-                .select('id, organization_id')
-                .eq('email', email.trim().toLowerCase())
-                .maybeSingle();
+        const resetUrl = resetData?.properties?.action_link || '';
 
-            if (fullProfile) {
-                await supabaseAdmin.from('auth_events').insert({
-                    organization_id: fullProfile.organization_id,
-                    user_id: fullProfile.id,
-                    event_type: 'PASSWORD_RESET',
-                    ip_address: ipAddress,
-                    user_agent: userAgent,
-                });
-            }
+        if (resetUrl) {
+            // Send the branded email via Resend instead of Supabase's built-in
+            await sendPasswordResetEmail(
+                email.trim().toLowerCase(),
+                resetUrl,
+                profile.organization_id
+            );
+        }
+
+        // Log password reset event
+        const ipAddress = request.headers.get('x-forwarded-for')
+            || request.headers.get('x-real-ip')
+            || 'unknown';
+        const userAgent = request.headers.get('user-agent') || 'unknown';
+
+        if (profile) {
+            await supabaseAdmin.from('auth_events').insert({
+                organization_id: profile.organization_id,
+                user_id: profile.id,
+                event_type: 'PASSWORD_RESET',
+                ip_address: ipAddress,
+                user_agent: userAgent,
+            });
         }
 
         return new Response(

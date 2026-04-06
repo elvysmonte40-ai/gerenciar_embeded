@@ -1,10 +1,10 @@
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
-import { welcomeEmailTemplate, passwordResetEmailTemplate } from './email-templates';
+import { welcomeEmailTemplate, passwordResetEmailTemplate, welcomeWithPasswordResetTemplate } from './email-templates';
 
 const apiKey = import.meta.env.RESEND_API_KEY;
 const fromName = import.meta.env.RESEND_FROM_NAME || 'MIS';
-const fromEmail = import.meta.env.RESEND_FROM_EMAIL || 'noreply@tatutec.com.br';
+const fromEmail = import.meta.env.RESEND_FROM_EMAIL || 'noreply@mis.online.net.br';
 
 export const resend = apiKey ? new Resend(apiKey) : null;
 
@@ -30,7 +30,7 @@ export interface SendTemplateEmailParams {
     variables?: Record<string, string>;
 }
 
-function processHtmlVariables(html: string, variables?: Record<string, string>): string {
+export function processHtmlVariables(html: string, variables?: Record<string, string>): string {
     if (!variables) return html;
     let processedHtml = html;
     for (const [key, value] of Object.entries(variables)) {
@@ -111,6 +111,53 @@ export async function sendWelcomeEmail(to: string, fullName: string, organizatio
     }
 }
 
+export async function sendWelcomeWithPasswordReset(to: string, fullName: string, resetUrl: string, organizationId?: string) {
+    if (!resend) throw new Error("Resend não configurado.");
+
+    let subject = `Boas-vindas ao MIS — Ative seu acesso, ${fullName.split(' ')[0]}! 🚀`;
+    let html = welcomeWithPasswordResetTemplate(fullName, resetUrl);
+
+    // Tentar buscar template customizado no banco
+    if (organizationId) {
+        const supabaseAdmin = getSupabaseAdmin();
+        if (supabaseAdmin) {
+            const { data: template } = await supabaseAdmin
+                .from('email_templates')
+                .select('subject, html_content')
+                .eq('organization_id', organizationId)
+                .eq('template_type', 'welcome')
+                .single();
+
+            if (template) {
+                subject = template.subject || subject;
+                html = processHtmlVariables(template.html_content, { nome: fullName, reset_url: resetUrl });
+            }
+        }
+    }
+
+    try {
+        const { data } = await resend.emails.send({
+            from: getFromAddress(),
+            to: [to],
+            subject,
+            html,
+        });
+
+        await logEmail({
+            resendEmailId: data?.id,
+            emailType: 'welcome_setup',
+            toEmail: to,
+            subject,
+            organizationId,
+        });
+
+        return { success: true, data };
+    } catch (error) {
+        console.error("Erro ao enviar email de boas-vindas com setup:", error);
+        return { success: false, error };
+    }
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string, organizationId?: string) {
     if (!resend) throw new Error("Resend não configurado.");
 
@@ -183,4 +230,51 @@ export async function sendCampaignEmail({ to, subject, htmlContent, variables }:
         console.error("Erro no envio pelo Resend:", error);
         return { success: false, error };
     }
+}
+
+export interface BatchEmailItem {
+    to: string;
+    subject: string;
+    html: string;
+    emailType: string;
+    organizationId?: string;
+}
+
+export async function sendBatchEmails(items: BatchEmailItem[]) {
+    if (!resend) throw new Error("Resend não configurado.");
+    
+    const CHUNK_SIZE = 100;
+    const allResults = [];
+    
+    for (let i = 0; i < items.length; i += CHUNK_SIZE) {
+        const currentItems = items.slice(i, i + CHUNK_SIZE);
+        const chunk = currentItems.map(item => ({
+            from: getFromAddress(),
+            to: [item.to],
+            subject: item.subject,
+            html: item.html,
+        }));
+        
+        try {
+            const { data, error } = await resend.batch.send(chunk);
+            if (error) throw error;
+            
+            // Background logging
+            currentItems.forEach(item => {
+                logEmail({
+                    emailType: item.emailType,
+                    toEmail: item.to,
+                    subject: item.subject,
+                    organizationId: item.organizationId
+                });
+            });
+            
+            allResults.push({ success: true, data });
+        } catch (err) {
+            console.error("Erro no batch send:", err);
+            allResults.push({ success: false, error: err });
+        }
+    }
+    
+    return allResults;
 }
