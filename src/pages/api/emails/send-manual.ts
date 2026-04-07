@@ -58,10 +58,10 @@ export const POST: APIRoute = async ({ request }) => {
         const fullName = profile?.full_name || 'Usuário';
 
         if (type === 'welcome') {
-            // Para boas-vindas, geramos um link de recuperação para o usuário configurar a senha
+            // Para boas-vindas, geramos um link de convite (invite) que permite configurar a expiração separada no Dashboard
             const baseUrl = import.meta.env.PUBLIC_SITE_URL || new URL(request.url).origin;
             const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
-                type: 'recovery',
+                type: 'invite',
                 email: targetEmail,
                 options: {
                     redirectTo: `${baseUrl}/update-password`,

@@ -84,11 +84,12 @@ export const POST: APIRoute = async ({ request }) => {
 
             // Se for reset de senha ou boas-vindas unificado, precisamos gerar o link único para este usuário
             if (templateType === 'password_reset' || templateType === 'welcome') {
+                const baseUrl = import.meta.env.PUBLIC_SITE_URL || new URL(request.url).origin;
                 const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-                    type: 'recovery',
+                    type: templateType === 'welcome' ? 'invite' : 'recovery',
                     email: p.email,
                     options: {
-                        redirectTo: 'https://mis.online.net.br/update-password'
+                        redirectTo: `${baseUrl}/update-password`
                     }
                 });
                 

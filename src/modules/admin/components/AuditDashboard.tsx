@@ -15,6 +15,9 @@ interface DashboardMetrics {
     totalLoginFailures: number;
     totalPasswordResets: number;
     loginTrend: { date: string; count: number }[];
+    activationTrend: { date: string; count: number }[];
+    resetTrend: { date: string; count: number }[];
+    failureTrend: { date: string; count: number }[];
     roleDistribution: { name: string; count: number; color: string }[];
     corporateDomains: string[];
     nonCorporateEmailCount: number;
@@ -35,6 +38,9 @@ const INITIAL_METRICS: DashboardMetrics = {
     totalLoginFailures: 0,
     totalPasswordResets: 0,
     loginTrend: [],
+    activationTrend: [],
+    resetTrend: [],
+    failureTrend: [],
     roleDistribution: [],
     corporateDomains: [],
     nonCorporateEmailCount: 0,
@@ -45,6 +51,7 @@ export function AuditDashboard() {
     const [metrics, setMetrics] = useState<DashboardMetrics>(INITIAL_METRICS);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedMetric, setSelectedMetric] = useState<'logins' | 'activations' | 'resets' | 'failures'>('logins');
 
     useEffect(() => {
         loadMetrics();
@@ -88,6 +95,9 @@ export function AuditDashboard() {
                     totalLoginFailures: data.totalLoginFailures || 0,
                     totalPasswordResets: data.totalPasswordResets || 0,
                     loginTrend: data.loginTrend || [],
+                    activationTrend: data.activationTrend || [],
+                    resetTrend: data.resetTrend || [],
+                    failureTrend: data.failureTrend || [],
                     roleDistribution: data.roleDistribution || [],
                     corporateDomains: data.corporateDomains || [],
                     nonCorporateEmailCount: data.nonCorporateEmailCount || 0,
@@ -135,7 +145,9 @@ export function AuditDashboard() {
                     value={metrics.totalLogins}
                     subtitle="Logins registrados"
                     color="bg-blue-50 text-blue-700"
-                    borderColor="border-blue-200"
+                    borderColor={selectedMetric === 'logins' ? "border-blue-500 ring-2 ring-blue-500/20" : "border-gray-200"}
+                    isSelected={selectedMetric === 'logins'}
+                    onClick={() => setSelectedMetric('logins')}
                 />
                 <KPICard
                     icon="✅"
@@ -143,7 +155,9 @@ export function AuditDashboard() {
                     value={metrics.totalActivations}
                     subtitle={`${metrics.pendingActivations} pendentes`}
                     color="bg-green-50 text-green-700"
-                    borderColor="border-green-200"
+                    borderColor={selectedMetric === 'activations' ? "border-green-500 ring-2 ring-green-500/20" : "border-gray-200"}
+                    isSelected={selectedMetric === 'activations'}
+                    onClick={() => setSelectedMetric('activations')}
                 />
                 <KPICard
                     icon="🔄"
@@ -151,7 +165,9 @@ export function AuditDashboard() {
                     value={metrics.totalPasswordResets}
                     subtitle="Solicitações de reset"
                     color="bg-amber-50 text-amber-700"
-                    borderColor="border-amber-200"
+                    borderColor={selectedMetric === 'resets' ? "border-amber-500 ring-2 ring-amber-500/20" : "border-gray-200"}
+                    isSelected={selectedMetric === 'resets'}
+                    onClick={() => setSelectedMetric('resets')}
                 />
                 <KPICard
                     icon="⚠️"
@@ -159,7 +175,9 @@ export function AuditDashboard() {
                     value={metrics.totalLoginFailures}
                     subtitle="Tentativas com erro"
                     color={metrics.totalLoginFailures > 10 ? "bg-red-50 text-red-700" : "bg-gray-50 text-gray-700"}
-                    borderColor={metrics.totalLoginFailures > 10 ? "border-red-200" : "border-gray-200"}
+                    borderColor={selectedMetric === 'failures' ? "border-red-500 ring-2 ring-red-500/20" : metrics.totalLoginFailures > 10 ? "border-red-200" : "border-gray-200"}
+                    isSelected={selectedMetric === 'failures'}
+                    onClick={() => setSelectedMetric('failures')}
                 />
             </div>
 
@@ -203,34 +221,60 @@ export function AuditDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Login Trend Chart */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-                        <h3 className="text-sm font-semibold text-gray-900">Acessos — Últimos 30 dias</h3>
+                    <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-gray-900">
+                            {selectedMetric === 'logins' && 'Acessos — Últimos 30 dias'}
+                            {selectedMetric === 'activations' && 'Ativações — Últimos 30 dias'}
+                            {selectedMetric === 'resets' && 'Redefinições de Senha — Últimos 30 dias'}
+                            {selectedMetric === 'failures' && 'Logins Falhos — Últimos 30 dias'}
+                        </h3>
+                        <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Barras: diário</span>
                     </div>
                     <div className="p-6">
-                        {metrics.totalLogins === 0 ? (
-                            <div className="text-center py-8 text-gray-400 text-sm">
-                                <p>Nenhum acesso registrado ainda.</p>
-                                <p className="text-xs mt-1">Os dados serão exibidos conforme os usuários realizem login.</p>
-                            </div>
-                        ) : (
-                            <div className="flex items-end gap-[2px] h-32">
-                                {metrics.loginTrend.map((item, i) => (
-                                    <div key={i} className="flex-1 flex flex-col items-center group relative">
-                                        <div
-                                            className="w-full bg-blue-400 hover:bg-blue-500 rounded-t transition-colors cursor-default min-h-[2px]"
-                                            style={{ height: `${Math.max((item.count / maxTrend) * 100, 2)}%` }}
-                                        />
-                                        <div className="absolute -top-8 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                                            {new Date(item.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}: {item.count}
-                                        </div>
+                        {(() => {
+                            const trend = selectedMetric === 'logins' ? metrics.loginTrend :
+                                          selectedMetric === 'activations' ? metrics.activationTrend :
+                                          selectedMetric === 'resets' ? metrics.resetTrend :
+                                          metrics.failureTrend;
+                            
+                            const total = trend.reduce((sum, t) => sum + t.count, 0);
+                            const max = Math.max(...trend.map(t => t.count), 1);
+                            const barColor = selectedMetric === 'logins' ? 'bg-blue-400 hover:bg-blue-500' :
+                                           selectedMetric === 'activations' ? 'bg-green-400 hover:bg-green-500' :
+                                           selectedMetric === 'resets' ? 'bg-amber-400 hover:bg-amber-500' :
+                                           'bg-red-400 hover:bg-red-500';
+
+                            if (total === 0) {
+                                return (
+                                    <div className="text-center py-8 text-gray-400 text-sm">
+                                        <p>Nenhum dado registrado para este período.</p>
+                                        <p className="text-xs mt-1">Os dados serão exibidos conforme as interações ocorram.</p>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                        <div className="flex justify-between mt-2 text-[10px] text-gray-400">
-                            <span>{metrics.loginTrend[0]?.date ? new Date(metrics.loginTrend[0].date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : ''}</span>
-                            <span>Hoje</span>
-                        </div>
+                                );
+                            }
+
+                            return (
+                                <>
+                                    <div className="flex items-end gap-[2px] h-32">
+                                        {trend.map((item, i) => (
+                                            <div key={i} className="flex-1 h-full flex flex-col justify-end items-center group relative">
+                                                <div
+                                                    className={`w-full ${barColor} rounded-t transition-all cursor-default min-h-[2px]`}
+                                                    style={{ height: `${Math.max((item.count / max) * 100, 2)}%` }}
+                                                />
+                                                <div className="absolute -top-8 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                                                    {new Date(item.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}: {item.count}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="flex justify-between mt-2 text-[10px] text-gray-400">
+                                        <span>{trend[0]?.date ? new Date(trend[0].date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : ''}</span>
+                                        <span>Hoje</span>
+                                    </div>
+                                </>
+                            );
+                        })()}
                     </div>
                 </div>
 
@@ -314,24 +358,38 @@ export function AuditDashboard() {
     );
 }
 
-function KPICard({ icon, label, value, subtitle, color, borderColor }: {
+function KPICard({ icon, label, value, subtitle, color, borderColor, onClick, isSelected }: {
     icon: string;
     label: string;
     value: number;
     subtitle: string;
     color: string;
     borderColor: string;
+    onClick?: () => void;
+    isSelected?: boolean;
 }) {
     return (
-        <div className={`bg-white rounded-xl border ${borderColor} shadow-sm p-5 hover:shadow-md transition-shadow`}>
+        <div 
+            onClick={onClick}
+            className={`bg-white rounded-xl border-2 ${borderColor} shadow-sm p-5 hover:shadow-md transition-all cursor-pointer ${isSelected ? 'scale-[1.02]' : 'hover:scale-[1.01]'}`}
+        >
             <div className="flex items-start justify-between">
                 <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{value.toLocaleString('pt-BR')}</p>
-                    <p className="text-xs text-gray-400 mt-1 truncate" title={subtitle}>{subtitle}</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{label}</p>
+                    <p className="text-2xl font-black text-gray-900 mt-1">{value.toLocaleString('pt-BR')}</p>
+                    <p className="text-[11px] font-medium text-gray-400 mt-1 truncate" title={subtitle}>{subtitle}</p>
                 </div>
-                <span className={`text-xl ${color} rounded-lg p-2`}>{icon}</span>
+                <span className={`text-xl ${color} rounded-lg p-2.5 shadow-inner`}>{icon}</span>
             </div>
+            {isSelected && (
+                <div className="mt-4 flex items-center gap-1.5">
+                    <div className="flex gap-0.5">
+                        <div className="w-1 h-1 rounded-full bg-current animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <div className="w-1 h-1 rounded-full bg-current animate-bounce" style={{ animationDelay: '150ms' }} />
+                    </div>
+                    <span className="text-[9px] font-bold uppercase tracking-tighter opacity-70">Visualizando no gráfico</span>
+                </div>
+            )}
         </div>
     );
 }
