@@ -24,6 +24,17 @@ interface DashboardMetrics {
     nonCorporateEmails: { full_name: string; email: string }[];
 }
 
+interface RecentEvent {
+    id: string;
+    user_id?: string;
+    full_name: string;
+    email: string;
+    created_at: string;
+    ip_address?: string;
+    user_agent?: string;
+    metadata?: any;
+}
+
 const INITIAL_METRICS: DashboardMetrics = {
     totalUsers: 0,
     activeUsers: 0,
@@ -51,11 +62,133 @@ export function AuditDashboard() {
     const [metrics, setMetrics] = useState<DashboardMetrics>(INITIAL_METRICS);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [selectedMetric, setSelectedMetric] = useState<'logins' | 'activations' | 'resets' | 'failures'>('logins');
+    const [selectedMetric, setSelectedMetric] = useState<'logins' | 'activations' | 'resets' | 'failures' | 'users' | 'no-role' | 'incomplete' | 'non-corporate'>('logins');
+    const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([]);
+    const [loadingDetails, setLoadingDetails] = useState(false);
 
     useEffect(() => {
         loadMetrics();
     }, []);
+
+    useEffect(() => {
+        // Clear details when metric changes
+        setRecentEvents([]);
+        loadEventDetails();
+    }, [selectedMetric]);
+
+    const loadEventDetails = async (currentMetrics?: DashboardMetrics) => {
+        setLoadingDetails(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('organization_id')
+                .eq('id', session.user.id)
+                .single();
+
+            if (!profile?.organization_id) return;
+
+            let query;
+            if (selectedMetric === 'logins') {
+                query = supabase
+                    .from('auth_events')
+                    .select('id, user_id, created_at, ip_address, user_agent, profiles(full_name, email)')
+                    .eq('organization_id', profile.organization_id)
+                    .eq('event_type', 'LOGIN')
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+            } else if (selectedMetric === 'resets') {
+                query = supabase
+                    .from('auth_events')
+                    .select('id, user_id, created_at, ip_address, profiles(full_name, email)')
+                    .eq('organization_id', profile.organization_id)
+                    .eq('event_type', 'PASSWORD_RESET')
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+            } else if (selectedMetric === 'failures') {
+                query = supabase
+                    .from('auth_events')
+                    .select('id, user_id, created_at, ip_address, metadata, profiles(full_name, email)')
+                    .eq('organization_id', profile.organization_id)
+                    .eq('event_type', 'LOGIN_FAILED')
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+            } else if (selectedMetric === 'activations') {
+                query = supabase
+                    .from('profiles')
+                    .select('id, full_name, email, activated_at')
+                    .eq('organization_id', profile.organization_id)
+                    .not('activated_at', 'is', null)
+                    .order('activated_at', { ascending: false })
+                    .limit(20);
+            } else if (selectedMetric === 'users') {
+                query = supabase
+                    .from('profiles')
+                    .select('id, full_name, email, created_at, status')
+                    .eq('organization_id', profile.organization_id)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+            } else if (selectedMetric === 'no-role') {
+                query = supabase
+                    .from('profiles')
+                    .select('id, full_name, email, created_at, status')
+                    .eq('organization_id', profile.organization_id)
+                    .is('organization_role_id', null)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+            } else if (selectedMetric === 'incomplete') {
+                query = supabase
+                    .from('profiles')
+                    .select('id, full_name, email, created_at, department_id, job_title_id')
+                    .eq('organization_id', profile.organization_id)
+                    .or('department_id.is.null,job_title_id.is.null')
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+            } else if (selectedMetric === 'non-corporate') {
+                // Use already calculated emails from metrics summary if available
+                const activeMetrics = currentMetrics || metrics;
+                if (activeMetrics.nonCorporateEmails.length > 0) {
+                    const emails = activeMetrics.nonCorporateEmails.map(e => e.email);
+                    query = supabase
+                        .from('profiles')
+                        .select('id, full_name, email, created_at')
+                        .eq('organization_id', profile.organization_id)
+                        .in('email', emails)
+                        .order('created_at', { ascending: false })
+                        .limit(20);
+                } else {
+                    query = null;
+                }
+            }
+
+            if (query) {
+                const { data, error: queryError } = await query;
+                if (queryError) throw queryError;
+                
+                const mappedEvents: RecentEvent[] = (data as any[]).map(item => {
+                    const profileData = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
+                    const finalProfile = profileData || item;
+                    return {
+                        id: item.id,
+                        user_id: item.user_id || item.id,
+                        full_name: finalProfile?.full_name || 'Usuário',
+                        email: finalProfile?.email || 'Sem e-mail',
+                        created_at: item.created_at || item.last_login_at || item.activated_at,
+                        ip_address: item.ip_address,
+                        user_agent: item.user_agent,
+                        metadata: item.metadata
+                    };
+                });
+                setRecentEvents(mappedEvents);
+            }
+        } catch (err) {
+            console.error('Error fetching event details:', err);
+        } finally {
+            setLoadingDetails(false);
+        }
+    };
 
     const loadMetrics = async () => {
         setLoading(true);
@@ -81,7 +214,7 @@ export function AuditDashboard() {
             if (rpcError) throw rpcError;
 
             if (data) {
-                setMetrics({
+                const refreshedMetrics = {
                     totalUsers: data.totalUsers || 0,
                     activeUsers: data.activeUsers || 0,
                     inactiveUsers: data.inactiveUsers || 0,
@@ -102,7 +235,10 @@ export function AuditDashboard() {
                     corporateDomains: data.corporateDomains || [],
                     nonCorporateEmailCount: data.nonCorporateEmailCount || 0,
                     nonCorporateEmails: data.nonCorporateEmails || [],
-                });
+                };
+                setMetrics(refreshedMetrics);
+                // Also load initial details
+                loadEventDetails(refreshedMetrics);
             }
         } catch (err: any) {
             console.error('Failed to load dashboard metrics:', err);
@@ -189,7 +325,9 @@ export function AuditDashboard() {
                     value={metrics.totalUsers}
                     subtitle={`${metrics.activeUsers} ativos · ${metrics.inactiveUsers} inativos`}
                     color="bg-indigo-50 text-indigo-700"
-                    borderColor="border-indigo-200"
+                    borderColor={selectedMetric === 'users' ? "border-indigo-500 ring-2 ring-indigo-500/20" : "border-gray-200"}
+                    isSelected={selectedMetric === 'users'}
+                    onClick={() => setSelectedMetric('users')}
                 />
                 <KPICard
                     icon="🏷️"
@@ -197,7 +335,9 @@ export function AuditDashboard() {
                     value={metrics.usersWithoutRole}
                     subtitle={`${metrics.usersWithoutRoleActive} ativos · ${metrics.usersWithoutRoleInactive} inativos`}
                     color={metrics.usersWithoutRole > 0 ? "bg-orange-50 text-orange-700" : "bg-gray-50 text-gray-700"}
-                    borderColor={metrics.usersWithoutRole > 0 ? "border-orange-200" : "border-gray-200"}
+                    borderColor={selectedMetric === 'no-role' ? "border-orange-500 ring-2 ring-orange-500/20" : metrics.usersWithoutRole > 0 ? "border-orange-200" : "border-gray-200"}
+                    isSelected={selectedMetric === 'no-role'}
+                    onClick={() => setSelectedMetric('no-role')}
                 />
                 <KPICard
                     icon="🏢"
@@ -205,7 +345,9 @@ export function AuditDashboard() {
                     value={metrics.usersWithoutDeptOrTitle}
                     subtitle="Sem departamento ou cargo"
                     color={metrics.usersWithoutDeptOrTitle > 0 ? "bg-yellow-50 text-yellow-700" : "bg-gray-50 text-gray-700"}
-                    borderColor={metrics.usersWithoutDeptOrTitle > 0 ? "border-yellow-200" : "border-gray-200"}
+                    borderColor={selectedMetric === 'incomplete' ? "border-yellow-500 ring-2 ring-yellow-500/20" : metrics.usersWithoutDeptOrTitle > 0 ? "border-yellow-200" : "border-gray-200"}
+                    isSelected={selectedMetric === 'incomplete'}
+                    onClick={() => setSelectedMetric('incomplete')}
                 />
                 <KPICard
                     icon="📧"
@@ -213,7 +355,9 @@ export function AuditDashboard() {
                     value={metrics.nonCorporateEmailCount}
                     subtitle={metrics.corporateDomains.length === 0 ? 'Nenhum domínio cadastrado' : `Fora de ${metrics.corporateDomains.map(d => `@${d}`).join(', ')}`}
                     color={metrics.nonCorporateEmailCount > 0 && metrics.corporateDomains.length > 0 ? "bg-rose-50 text-rose-700" : "bg-gray-50 text-gray-700"}
-                    borderColor={metrics.nonCorporateEmailCount > 0 && metrics.corporateDomains.length > 0 ? "border-rose-200" : "border-gray-200"}
+                    borderColor={selectedMetric === 'non-corporate' ? "border-rose-500 ring-2 ring-rose-500/20" : metrics.nonCorporateEmailCount > 0 && metrics.corporateDomains.length > 0 ? "border-rose-200" : "border-gray-200"}
+                    isSelected={selectedMetric === 'non-corporate'}
+                    onClick={() => setSelectedMetric('non-corporate')}
                 />
             </div>
 
@@ -317,43 +461,96 @@ export function AuditDashboard() {
                 </div>
             </div>
 
-            {/* Non-corporate emails table */}
-            {metrics.corporateDomains.length > 0 && metrics.nonCorporateEmailCount > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
-                        <div>
-                            <h3 className="text-sm font-semibold text-gray-900">Usuários com E-mail Não Corporativo</h3>
-                            <p className="text-xs text-gray-500 mt-0.5">Domínios cadastrados: {metrics.corporateDomains.map(d => `@${d}`).join(', ')}</p>
-                        </div>
-                        <span className="text-xs font-medium bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">
-                            {metrics.nonCorporateEmailCount}
-                        </span>
+            {/* Detail Section: Relationship with Users */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-all duration-300">
+                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h3 className="text-sm font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                            {selectedMetric === 'logins' && 'Atividade Recente: Acessos'}
+                            {selectedMetric === 'activations' && 'Atividade Recente: Ativações'}
+                            {selectedMetric === 'resets' && 'Atividade Recente: Redefinições de Senha'}
+                            {selectedMetric === 'failures' && 'Atividade Recente: Tentativas Falhas'}
+                            {selectedMetric === 'users' && 'Novos Usuários Cadastrados'}
+                            {selectedMetric === 'no-role' && 'Usuários Sem Perfil de Acesso'}
+                            {selectedMetric === 'incomplete' && 'Usuários com Cadastro Incompleto'}
+                            {selectedMetric === 'non-corporate' && 'Usuários com E-mail Externo'}
+                        </h3>
+                        <p className="text-[10px] text-gray-500 font-medium">Relacionamento detalhado com os perfis de usuários envolvidos.</p>
                     </div>
-                    <div className="overflow-x-auto max-h-64 overflow-y-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50 sticky top-0">
+                </div>
+                
+                {loadingDetails ? (
+                    <div className="p-12 text-center">
+                        <div className="flex flex-col items-center gap-3">
+                            <div className="h-8 w-8 border-3 border-brand border-t-transparent rounded-full animate-spin" />
+                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Carregando detalhes...</span>
+                        </div>
+                    </div>
+                ) : recentEvents.length === 0 ? (
+                    <div className="p-12 text-center bg-gray-50/30">
+                        <p className="text-gray-400 text-sm font-medium italic">Nenhum evento recente encontrado para esta categoria.</p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-100">
+                            <thead className="bg-[#fcfdff]">
                                 <tr>
-                                    <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
-                                    <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">E-mail</th>
+                                    <th className="px-6 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider">Usuário</th>
+                                    <th className="px-6 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider">Identificação</th>
+                                    <th className="px-6 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider">Metadados / Origem</th>
+                                    <th className="px-6 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider">Data e Hora</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {metrics.nonCorporateEmails.map((user, i) => (
-                                    <tr key={i} className="hover:bg-gray-50">
-                                        <td className="px-6 py-2 text-sm text-gray-900">{user.full_name || 'Sem Nome'}</td>
-                                        <td className="px-6 py-2 text-sm text-gray-500">{user.email}</td>
+                            <tbody className="bg-white divide-y divide-gray-50">
+                                {recentEvents.map((event) => (
+                                    <tr key={event.id} className="hover:bg-[#f8fbff] transition-all group">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400 border border-slate-200 group-hover:bg-brand group-hover:text-white group-hover:border-brand transition-colors">
+                                                    {event.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-bold text-gray-800">{event.full_name}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-xs font-medium text-gray-500 group-hover:text-gray-700 transition-colors">{event.email}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-[10px] font-mono bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded w-fit border border-gray-200/50">
+                                                    {event.ip_address || 'IP Interno'}
+                                                </span>
+                                                {event.user_agent && (
+                                                    <span className="text-[9px] text-gray-400 truncate max-w-[200px]" title={event.user_agent}>
+                                                        {event.user_agent.split(' ')[0]} {event.user_agent.split(' ').slice(-1)}
+                                                    </span>
+                                                )}
+                                                {event.metadata?.error && (
+                                                    <span className="text-[9px] text-red-500 font-bold uppercase tracking-tighter">
+                                                        Erro: {event.metadata.error}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex flex-col text-right sm:text-left">
+                                                <span className="text-xs font-bold text-gray-700">
+                                                    {new Date(event.created_at).toLocaleDateString('pt-BR')}
+                                                </span>
+                                                <span className="text-[10px] font-medium text-gray-400">
+                                                    {new Date(event.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}h
+                                                </span>
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                        {metrics.nonCorporateEmailCount > 50 && (
-                            <div className="px-6 py-2 text-xs text-gray-400 text-center border-t">
-                                Exibindo 50 de {metrics.nonCorporateEmailCount} registros
-                            </div>
-                        )}
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }

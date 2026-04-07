@@ -131,7 +131,9 @@ export const POST: APIRoute = async ({ request }) => {
         if (recipientIds.length > 0) {
             await supabaseAdmin
                 .from('profiles')
-                .update({ is_activated: true })
+                .update({ 
+                    is_activated: true
+                })
                 .in('id', recipientIds);
         }
 

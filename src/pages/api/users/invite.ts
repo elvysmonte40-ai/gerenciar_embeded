@@ -105,7 +105,9 @@ export const POST: APIRoute = async ({ request }) => {
             if (emailResult.success) {
                 await supabaseAdmin
                     .from('profiles')
-                    .update({ is_activated: true })
+                    .update({ 
+                    is_activated: true
+                })
                     .eq('id', resultData.user.id);
             }
         }
