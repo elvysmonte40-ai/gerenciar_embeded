@@ -83,15 +83,23 @@ export const POST: APIRoute = async ({ request }) => {
         // Send Welcome Email with password setup link — this activates the account
         if (sendWelcome) {
             const baseUrl = import.meta.env.PUBLIC_SITE_URL || 'https://mis.online.net.br';
-            const { data: resetData } = await supabaseAdmin.auth.admin.generateLink({
-                type: 'recovery',
+            const { data: resetData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+                type: 'invite',
                 email,
                 options: {
                     redirectTo: `${baseUrl}/update-password`,
                 },
             });
 
-            const resetUrl = resetData?.properties?.action_link || `${baseUrl}/login`;
+            if (linkError) {
+                console.error("Erro ao gerar link de convite:", linkError);
+            }
+
+            const actionLink = resetData?.properties?.action_link;
+            const resetUrl = actionLink 
+                ? `${baseUrl}/auth/confirm?token_url=${encodeURIComponent(actionLink)}`
+                : `${baseUrl}/login`;
+
             const emailResult = await sendWelcomeWithPasswordReset(email, fullName, resetUrl, organization_id);
 
             if (emailResult.success) {

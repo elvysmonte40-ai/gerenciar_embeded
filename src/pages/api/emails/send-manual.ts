@@ -69,10 +69,13 @@ export const POST: APIRoute = async ({ request }) => {
             });
 
             if (resetError) {
-                console.warn('Falha ao gerar link de setup, enviando boas-vindas simples:', resetError.message);
+                console.warn('Falha ao gerar link de setup:', resetError.message);
             }
 
-            const resetUrl = resetData?.properties?.action_link || '';
+            const actionLink = resetData?.properties?.action_link;
+            const resetUrl = actionLink 
+                ? `${baseUrl}/auth/confirm?token_url=${encodeURIComponent(actionLink)}`
+                : '';
             
             // Importação dinâmica para evitar loops e usar a nova função que vamos criar
             const { sendWelcomeWithPasswordReset } = await import('../../../lib/resend');
@@ -110,7 +113,11 @@ export const POST: APIRoute = async ({ request }) => {
             // Send email via Resend with custom template
             const { sendPasswordResetEmail } = await import('../../../lib/resend');
             
-            const resetUrl = resetData?.properties?.action_link || '';
+            const actionLink = resetData?.properties?.action_link;
+            const resetUrl = actionLink 
+                ? `${baseUrl}/auth/confirm?token_url=${encodeURIComponent(actionLink)}`
+                : '';
+            
             const result = await sendPasswordResetEmail(targetEmail, resetUrl, orgId);
 
             if (!result.success) {

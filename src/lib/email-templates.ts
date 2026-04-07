@@ -28,37 +28,28 @@ function button(url: string, text: string): string {
   return `
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 32px auto 16px;">
       <tr>
-        <td align="center" style="border-radius: 10px; background-color: ${brandColor};">
-          <!--[if mso]>
-          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${safeUrl}" style="height:54px;v-text-anchor:middle;width:280px;" arcsize="19%" strokecolor="${brandDark}" fillcolor="${brandColor}">
-            <w:anchorlock/>
-            <center style="color:#ffffff;font-family:Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;">
-              ${text}
-            </center>
-          </v:roundrect>
-          <![endif]-->
-          <!--[if !mso]><!-->
-          <a href="${safeUrl}" target="_blank" style="display: inline-block; padding: 16px 48px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 10px; background-color: ${brandColor}; border: 2px solid ${brandDark}; letter-spacing: 0.3px; mso-hide: all;">
+        <td align="center" style="border-radius: 12px; background-color: ${brandColor};">
+          <a href="${safeUrl}" target="_blank" style="display: inline-block; padding: 18px 48px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 12px; background-color: ${brandColor}; border: 1px solid ${brandDark}; letter-spacing: 0.5px; mso-line-height-rule: exactly; line-height: 1;">
             ${text}
           </a>
-          <!--<![endif]-->
         </td>
       </tr>
     </table>`;
 }
 
 function fallbackLink(url: string, label: string = 'Caso o botão não funcione, copie e cole o link abaixo no seu navegador:'): string {
+  if (!url) return '';
   const safeUrl = escapeHtml(url);
   return `
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto 32px; max-width: 480px;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto 32px; width: 100%; max-width: 480px;">
       <tr>
-        <td align="center" style="padding: 16px 24px; background-color: ${bgColor}; border-radius: 8px; border: 1px solid ${borderColor};">
-          <p style="margin: 0 0 8px; font-size: 12px; color: ${mutedColor}; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.4;">
+        <td align="center" style="padding: 20px 24px; background-color: ${bgColor}; border-radius: 10px; border: 1px solid ${borderColor};">
+          <p style="margin: 0 0 10px; font-size: 12px; color: ${mutedColor}; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.4; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
             ${label}
           </p>
-          <a href="${safeUrl}" target="_blank" style="font-size: 12px; color: ${brandColor}; word-break: break-all; text-decoration: underline; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.6;">
+          <div style="font-size: 12px; color: ${brandColor}; word-break: break-all; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.6; text-decoration: none;">
             ${safeUrl}
-          </a>
+          </div>
         </td>
       </tr>
     </table>`;
