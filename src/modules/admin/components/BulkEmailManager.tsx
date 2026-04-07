@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { Users, Briefcase, Building, Shield, Mail, Send, CheckCircle2, AlertCircle, Eye, ChevronRight } from 'lucide-react';
+import { Users, Briefcase, Building, Shield, Mail, Send, CheckCircle2, AlertCircle, Eye, ChevronRight, Search, Filter } from 'lucide-react';
 
 interface Template {
     template_type: string;
@@ -28,6 +28,10 @@ export default function BulkEmailManager() {
     const [onlyCorporateDomains, setOnlyCorporateDomains] = useState(false);
     const [orgDomains, setOrgDomains] = useState<string[]>([]);
     
+    // Novos filtros
+    const [activationStatus, setActivationStatus] = useState<'all' | 'activated' | 'not_activated'>('all');
+    const [userSearchTerm, setUserSearchTerm] = useState('');
+    
     const [loading, setLoading] = useState(false);
     const [fetchingFilters, setFetchingFilters] = useState(false);
     const [resolvingRecipients, setResolvingRecipients] = useState(false);
@@ -48,7 +52,8 @@ export default function BulkEmailManager() {
         fetchFilterOptions();
         setSelectedFilters([]);
         setRecipientCount(0);
-    }, [filterType]);
+        setUserSearchTerm(''); // Reset busca ao trocar tipo
+    }, [filterType, activationStatus]);
 
     // Resolve recipient count when selected filters change or flag changes
     useEffect(() => {
@@ -57,7 +62,7 @@ export default function BulkEmailManager() {
         } else {
             setRecipientCount(0);
         }
-    }, [selectedFilters, onlyCorporateDomains]);
+    }, [selectedFilters, onlyCorporateDomains, activationStatus]);
 
     // Live preview update
     useEffect(() => {
@@ -120,7 +125,11 @@ export default function BulkEmailManager() {
                     data = jobs?.map(j => ({ id: j.id, name: j.title })) || [];
                     break;
                 case 'users':
-                    const { data: users } = await supabase.from('profiles').select('id, full_name, email').eq('status', 'active');
+                    let profileQuery = supabase.from('profiles').select('id, full_name, email').eq('status', 'active');
+                    if (activationStatus === 'activated') profileQuery = profileQuery.eq('is_activated', true);
+                    else if (activationStatus === 'not_activated') profileQuery = profileQuery.eq('is_activated', false);
+                    
+                    const { data: users } = await profileQuery;
                     data = users?.map(u => ({ id: u.id, name: `${u.full_name || 'Sem Nome'} (${u.email || ''})` })) || [];
                     break;
             }
@@ -141,6 +150,9 @@ export default function BulkEmailManager() {
             else if (filterType === 'departments') query = query.in('department_id', selectedFilters);
             else if (filterType === 'profiles') query = query.in('job_title_id', selectedFilters);
             else if (filterType === 'users') query = query.in('id', selectedFilters);
+            
+            if (activationStatus === 'activated') query = query.eq('is_activated', true);
+            else if (activationStatus === 'not_activated') query = query.eq('is_activated', false);
             
             if (onlyCorporateDomains) {
                 if (orgDomains.length === 0) {
@@ -209,7 +221,8 @@ export default function BulkEmailManager() {
                     filters: {
                         type: filterType,
                         ids: selectedFilters,
-                        onlyCorporateDomains // Pass flag to backend
+                        onlyCorporateDomains,
+                        activationStatus
                     },
                     templateType: selectedTemplate
                 })
@@ -375,6 +388,33 @@ export default function BulkEmailManager() {
                                 ))}
                             </div>
 
+                            {/* Filtro de Ativação (Global) */}
+                            <div className="mb-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Filter className="w-3 h-3 text-indigo-400" />
+                                    <span className="text-[10px] font-black uppercase text-gray-400">Situação de Ativação</span>
+                                </div>
+                                <div className="flex gap-1 p-1 bg-gray-50 rounded-lg border border-gray-100">
+                                    {[
+                                        { id: 'all', label: 'Todos' },
+                                        { id: 'activated', label: 'Ativados' },
+                                        { id: 'not_activated', label: 'Pendentes' },
+                                    ].map(status => (
+                                        <button
+                                            key={status.id}
+                                            onClick={() => setActivationStatus(status.id as any)}
+                                            className={`flex-1 py-1.5 rounded-md text-[9px] font-bold transition-all ${
+                                                activationStatus === status.id 
+                                                    ? 'bg-white text-indigo-600 shadow-sm border border-indigo-100' 
+                                                    : 'text-gray-400 hover:text-gray-600'
+                                            }`}
+                                        >
+                                            {status.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
                             {/* Corporate Domains Toggle */}
                             {orgDomains.length > 0 && (
                                 <div className="mb-4 p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 flex items-center justify-between">
@@ -395,6 +435,20 @@ export default function BulkEmailManager() {
                                 </div>
                             )}
 
+                            {/* Busca por Usuário */}
+                            {filterType === 'users' && (
+                                <div className="mb-4 relative group">
+                                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+                                    <input 
+                                        type="text"
+                                        value={userSearchTerm}
+                                        onChange={(e) => setUserSearchTerm(e.target.value)}
+                                        placeholder="Buscar por nome ou e-mail..."
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl pl-9 pr-4 py-2 text-xs focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+                                    />
+                                </div>
+                            )}
+
                             {/* Lista de Opções */}
                             <div className="flex-1 overflow-y-auto space-y-2 min-h-[300px] max-h-[500px] pr-1">
                                 {fetchingFilters ? (
@@ -405,20 +459,25 @@ export default function BulkEmailManager() {
                                 ) : filterOptions.length === 0 ? (
                                     <div className="text-center py-12 text-gray-400 text-sm">Nenhuma opção encontrada.</div>
                                 ) : (
-                                    filterOptions.map(opt => (
-                                        <button
-                                            key={opt.id}
-                                            onClick={() => toggleFilter(opt.id)}
-                                            className={`w-full flex items-center justify-between p-3 rounded-xl border text-sm transition-all text-left ${
-                                                selectedFilters.includes(opt.id)
-                                                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                                                    : 'bg-white border-gray-100 text-gray-600 hover:border-gray-200'
-                                            }`}
-                                        >
-                                            <span className="truncate">{opt.name}</span>
-                                            {selectedFilters.includes(opt.id) && <CheckCircle2 className="w-4 h-4 shrink-0" />}
-                                        </button>
-                                    ))
+                                    filterOptions
+                                        .filter(opt => 
+                                            !userSearchTerm || 
+                                            opt.name.toLowerCase().includes(userSearchTerm.toLowerCase())
+                                        )
+                                        .map(opt => (
+                                            <button
+                                                key={opt.id}
+                                                onClick={() => toggleFilter(opt.id)}
+                                                className={`w-full flex items-center justify-between p-3 rounded-xl border text-sm transition-all text-left ${
+                                                    selectedFilters.includes(opt.id)
+                                                        ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                                                        : 'bg-white border-gray-100 text-gray-600 hover:border-gray-200'
+                                                }`}
+                                            >
+                                                <span className="truncate">{opt.name}</span>
+                                                {selectedFilters.includes(opt.id) && <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                                            </button>
+                                        ))
                                 )}
                             </div>
 

@@ -36,11 +36,14 @@ export const POST: APIRoute = async ({ request }) => {
             .eq('status', 'active')
             .not('email', 'is', null);
         
-        const { type, ids, onlyCorporateDomains } = filters;
+        const { type, ids, onlyCorporateDomains, activationStatus } = filters;
         if (type === 'roles') query = query.in('organization_role_id', ids);
         else if (type === 'departments') query = query.in('department_id', ids);
         else if (type === 'profiles') query = query.in('job_title_id', ids);
         else if (type === 'users') query = query.in('id', ids);
+
+        if (activationStatus === 'activated') query = query.eq('is_activated', true);
+        else if (activationStatus === 'not_activated') query = query.eq('is_activated', false);
 
         if (onlyCorporateDomains) {
             const { data: orgDomains } = await supabaseAdmin
