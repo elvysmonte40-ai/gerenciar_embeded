@@ -85,20 +85,35 @@ export const POST: APIRoute = async ({ request }) => {
             // Se for reset de senha ou boas-vindas unificado, precisamos gerar o link único para este usuário
             if (templateType === 'password_reset' || templateType === 'welcome') {
                 const baseUrl = import.meta.env.PUBLIC_SITE_URL || new URL(request.url).origin;
-                const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+                
+                // Tenta gerar link de invite (para novos usuários) ou recovery (para existentes)
+                // Se o usuário já estiver confirmado, o invite falha, então tentamos o recovery
+                let result = await supabaseAdmin.auth.admin.generateLink({
                     type: templateType === 'welcome' ? 'invite' : 'recovery',
                     email: p.email,
                     options: {
                         redirectTo: `${baseUrl}/update-password`
                     }
                 });
+
+                // Fallback: se invite falhar em boas-vindas, tenta recovery (usuário já confirmado)
+                if (result.error && templateType === 'welcome') {
+                    console.log(`Tentando fallback de recovery para ${p.email} após falha no invite: ${result.error.message}`);
+                    result = await supabaseAdmin.auth.admin.generateLink({
+                        type: 'recovery',
+                        email: p.email,
+                        options: {
+                            redirectTo: `${baseUrl}/update-password`
+                        }
+                    });
+                }
                 
-                if (linkError) {
-                    console.error(`Erro ao gerar link de reset para ${p.email}:`, linkError.message);
+                if (result.error) {
+                    console.error(`Erro ao gerar link para ${p.email}:`, result.error.message);
                     continue; 
                 }
                 
-                variables['reset_url'] = linkData.properties.action_link;
+                variables['reset_url'] = result.data.properties.action_link;
             }
 
             // Processar variáveis no HTML

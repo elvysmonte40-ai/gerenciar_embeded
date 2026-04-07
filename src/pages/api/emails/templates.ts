@@ -1,11 +1,11 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
-import { welcomeEmailTemplate, passwordResetEmailTemplate } from '../../../lib/email-templates';
+import { welcomeWithPasswordResetTemplate, passwordResetEmailTemplate } from '../../../lib/email-templates';
 
 const DEFAULT_TEMPLATES = {
     welcome: {
         subject: 'Bem-vindo(a) ao MIS! 🎉',
-        html_content: welcomeEmailTemplate('{{nome}}'),
+        html_content: welcomeWithPasswordResetTemplate('{{nome}}', '{{reset_url}}'),
     },
     password_reset: {
         subject: 'Redefinir sua senha — MIS',
