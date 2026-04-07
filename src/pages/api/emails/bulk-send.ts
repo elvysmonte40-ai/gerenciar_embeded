@@ -42,8 +42,8 @@ export const POST: APIRoute = async ({ request }) => {
         else if (type === 'profiles') query = query.in('job_title_id', ids);
         else if (type === 'users') query = query.in('id', ids);
 
-        if (activationStatus === 'activated') query = query.eq('is_activated', true);
-        else if (activationStatus === 'not_activated') query = query.eq('is_activated', false);
+        if (activationStatus === 'activated') query = query.not('last_login_at', 'is', null);
+        else if (activationStatus === 'not_activated') query = query.is('last_login_at', null);
 
         if (onlyCorporateDomains) {
             const { data: orgDomains } = await supabaseAdmin
@@ -70,10 +70,12 @@ export const POST: APIRoute = async ({ request }) => {
 
         // 2. Preparar emails individuais (personalizados)
         const emailItems: BatchEmailItem[] = [];
+        const recipientIds: string[] = [];
         
         for (const p of profiles) {
             if (!p.email) continue;
             
+            recipientIds.push(p.id);
             let finalHtml = htmlContent;
             const variables: Record<string, string> = {
                 nome: p.full_name?.split(' ')[0] || 'Usuário',
@@ -123,6 +125,15 @@ export const POST: APIRoute = async ({ request }) => {
             throw new Error("Falha total no envio em massa. Verifique os logs.");
         }
 
+        // 4. ATIVAÇÃO: Marcar todos os destinatários como "autorizados a logar" (is_activated = true)
+        // Isso permite que eles acessem o sistema após receberem o e-mail
+        if (recipientIds.length > 0) {
+            await supabaseAdmin
+                .from('profiles')
+                .update({ is_activated: true })
+                .in('id', recipientIds);
+        }
+
         return new Response(JSON.stringify({ 
             success: true, 
             message: `Processamento concluído. ${emailItems.length} destinatários processados individualmente.`,
@@ -139,3 +150,4 @@ export const POST: APIRoute = async ({ request }) => {
         });
     }
 };
+

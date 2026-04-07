@@ -126,8 +126,8 @@ export default function BulkEmailManager() {
                     break;
                 case 'users':
                     let profileQuery = supabase.from('profiles').select('id, full_name, email').eq('status', 'active');
-                    if (activationStatus === 'activated') profileQuery = profileQuery.eq('is_activated', true);
-                    else if (activationStatus === 'not_activated') profileQuery = profileQuery.eq('is_activated', false);
+                    if (activationStatus === 'activated') profileQuery = profileQuery.not('last_login_at', 'is', null);
+                    else if (activationStatus === 'not_activated') profileQuery = profileQuery.is('last_login_at', null);
                     
                     const { data: users } = await profileQuery;
                     data = users?.map(u => ({ id: u.id, name: `${u.full_name || 'Sem Nome'} (${u.email || ''})` })) || [];
@@ -151,8 +151,8 @@ export default function BulkEmailManager() {
             else if (filterType === 'profiles') query = query.in('job_title_id', selectedFilters);
             else if (filterType === 'users') query = query.in('id', selectedFilters);
             
-            if (activationStatus === 'activated') query = query.eq('is_activated', true);
-            else if (activationStatus === 'not_activated') query = query.eq('is_activated', false);
+            if (activationStatus === 'activated') query = query.not('last_login_at', 'is', null);
+            else if (activationStatus === 'not_activated') query = query.is('last_login_at', null);
             
             if (onlyCorporateDomains) {
                 if (orgDomains.length === 0) {
