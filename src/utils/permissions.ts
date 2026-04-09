@@ -44,20 +44,22 @@ export function mergePermissions(storedPermissions: any): AppPermissions {
     };
 }
 
-export async function fetchUserPermissions(userId: string): Promise<{ permissions: AppPermissions, isOrgAdmin: boolean }> {
+export async function fetchUserPermissions(userId: string): Promise<{ permissions: AppPermissions, isOrgAdmin: boolean, canExportData: boolean }> {
     try {
         const { data: profile, error } = await supabase
             .from('profiles')
             .select(`
                 role,
+                can_export_data,
                 organization_roles (
-                    permissions
+                    permissions,
+                    can_export_data
                 )
             `)
             .eq('id', userId)
             .single();
 
-        if (error || !profile) return { permissions: DEFAULT_PERMISSIONS, isOrgAdmin: false };
+        if (error || !profile) return { permissions: DEFAULT_PERMISSIONS, isOrgAdmin: false, canExportData: false };
 
         const isOrgAdmin = profile.role === 'admin';
 
@@ -69,9 +71,11 @@ export async function fetchUserPermissions(userId: string): Promise<{ permission
             ? mergePermissions(roleData.permissions)
             : DEFAULT_PERMISSIONS;
 
-        return { permissions, isOrgAdmin };
+        const canExportData = isOrgAdmin || profile.can_export_data === true || (roleData as any)?.can_export_data === true;
+
+        return { permissions, isOrgAdmin, canExportData };
     } catch (e) {
         console.error("Error fetching permissions:", e);
-        return { permissions: DEFAULT_PERMISSIONS, isOrgAdmin: false };
+        return { permissions: DEFAULT_PERMISSIONS, isOrgAdmin: false, canExportData: false };
     }
 }

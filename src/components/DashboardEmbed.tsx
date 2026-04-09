@@ -48,7 +48,19 @@ export const DashboardEmbed: React.FC = () => {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session) throw new Error("Usuário não autenticado");
 
-                const { data: profile } = await supabase.from('profiles').select('organization_id, can_export_data, role, organization_role_id').eq('id', session.user.id).single();
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select(`
+                        organization_id, 
+                        can_export_data, 
+                        role, 
+                        organization_role_id,
+                        organization_roles (
+                            can_export_data
+                        )
+                    `)
+                    .eq('id', session.user.id)
+                    .single();
 
                 if (!profile?.organization_id) {
                     throw new Error("Usuário sem organização vinculada.");
@@ -57,6 +69,7 @@ export const DashboardEmbed: React.FC = () => {
                 const payload: any = {
                     organization_id: profile.organization_id
                 };
+
 
                 if (targetWorkspaceId && targetReportId) {
                     payload.group_id = targetWorkspaceId;
@@ -116,9 +129,17 @@ export const DashboardEmbed: React.FC = () => {
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || "Erro ao obter token");
 
+                // Check for export permission across:
+                // 1. Admin status (always allowed)
+                // 2. Direct profile override
+                // 3. Organization role permission
+                const roleExport = Array.isArray(profile.organization_roles) 
+                    ? profile.organization_roles[0]?.can_export_data 
+                    : (profile.organization_roles as any)?.can_export_data;
+
                 setConfig({
                     ...data,
-                    canExportData: profile?.can_export_data
+                    canExportData: profile.role === 'admin' || profile.can_export_data === true || roleExport === true
                 });
             } catch (err: any) {
                 console.error("Error loading dashboard:", err);
