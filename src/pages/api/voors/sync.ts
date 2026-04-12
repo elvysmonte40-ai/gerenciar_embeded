@@ -3,11 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
-const cronSecret = import.meta.env.CRON_SECRET;
-
-if (!cronSecret) {
-    console.error('CRON_SECRET is not defined in environment variables.');
-}
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: {
@@ -19,6 +14,16 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
 // Helper to clean CPF
 const cleanCpf = (cpf: string) => cpf?.replace(/\D/g, '');
 
+// Fetch CRON_SECRET from the database (app_secrets table)
+async function getCronSecret(): Promise<string | null> {
+    const { data } = await supabaseAdmin
+        .from('app_secrets')
+        .select('value')
+        .eq('key', 'CRON_SECRET')
+        .single();
+    return data?.value || null;
+}
+
 export const POST: APIRoute = async ({ request }) => {
     return handleSync(request);
 };
@@ -28,8 +33,12 @@ export const GET: APIRoute = async ({ request }) => {
 };
 
 async function handleSync(request: Request) {
+    const syncStartTime = Date.now();
+    console.log(`[Voors Sync] Started at ${new Date().toISOString()}`);
+
     try {
         let organizationIdsToSync: string[] = [];
+        let triggerType: 'manual' | 'cron' = 'manual';
 
         // 1. Authenticate Request
         const authHeader = request.headers.get('Authorization');
@@ -37,7 +46,14 @@ async function handleSync(request: Request) {
         const url = new URL(request.url);
         const queryCronSecret = url.searchParams.get('cron_secret');
 
-        if (cronSecret && (internalCronHeader === cronSecret || queryCronSecret === cronSecret)) {
+        // Check cron authentication (secret stored in DB, not env)
+        const cronSecret = await getCronSecret();
+        const isCronTrigger = cronSecret && (internalCronHeader === cronSecret || queryCronSecret === cronSecret);
+
+        if (isCronTrigger) {
+            triggerType = 'cron';
+            console.log('[Voors Sync] Authenticated via cron secret');
+
             // Cron Job Trigger: Sync all organizations that have auto_sync enabled
             const { data: orgs, error } = await supabaseAdmin
                 .from('voors_settings')
@@ -48,8 +64,11 @@ async function handleSync(request: Request) {
             organizationIdsToSync = orgs.map(o => o.organization_id);
 
             if (organizationIdsToSync.length === 0) {
+                console.log('[Voors Sync] No organizations configured for auto-sync.');
                 return new Response(JSON.stringify({ message: 'No organizations configured for auto-sync.' }), { status: 200 });
             }
+
+            console.log(`[Voors Sync] Cron trigger: ${organizationIdsToSync.length} org(s) to sync`);
         } else if (authHeader) {
             // Manual Trigger from UI
             const token = authHeader.replace('Bearer ', '');
@@ -89,16 +108,28 @@ async function handleSync(request: Request) {
                 }
 
                 // Fetch from Voors
-                // Hardcoding standard parameters but this could be dynamic too
                 const voorsApiUrl = 'http://social.nela.com.br:1344/goals?startDate=2022-07-01&endDate=2050-12-31';
-                const voorsResponse = await fetch(voorsApiUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Cache-Control': 'no-cache',
-                        'Authorization': settings.token,
-                        'Accept': '*/*'
-                    }
-                });
+                console.log(`[Voors Sync] Fetching users from Voors API for org ${orgId}...`);
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+                let voorsResponse: Response;
+                try {
+                    voorsResponse = await fetch(voorsApiUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Cache-Control': 'no-cache',
+                            'Authorization': settings.token,
+                            'Accept': '*/*'
+                        },
+                        signal: controller.signal
+                    });
+                } catch (fetchErr: any) {
+                    clearTimeout(timeoutId);
+                    throw new Error(`Voors API unreachable: ${fetchErr.message}`);
+                }
+                clearTimeout(timeoutId);
 
                 if (!voorsResponse.ok) {
                     throw new Error(`Voors API returned ${voorsResponse.status}`);
@@ -159,16 +190,49 @@ async function handleSync(request: Request) {
                     }
                 }
 
-                // Build a Manager Name to ID map based on ALL current profiles
-                const { data: allProfiles } = await supabaseAdmin.from('profiles').select('id, full_name').eq('organization_id', orgId);
+                // Build lookup maps based on ALL current profiles for this org
+                // Fetching columns we need to compare
+                const { data: allProfiles } = await supabaseAdmin.from('profiles')
+                    .select('id, full_name, role, status, cpf, birth_date, can_export_data, manager_id, manager_name, gender, admission_date, inactivation_date, job_title_id, department_id, sector_id, organization_role_id')
+                    .eq('organization_id', orgId);
+
                 const nameToProfileIdMap: Record<string, string> = {};
+                const cpfToProfileMap: Record<string, any> = {};
+                const idToProfileMap: Record<string, any> = {};
+
                 if (allProfiles) {
                     allProfiles.forEach(p => {
                         if (p.full_name) {
                             nameToProfileIdMap[p.full_name.trim().toLowerCase()] = p.id;
                         }
+                        if (p.cpf) {
+                            cpfToProfileMap[p.cpf] = p;
+                        }
+                        idToProfileMap[p.id] = p;
                     });
                 }
+
+                // Helper to check if data is actually different
+                const isDifferent = (newData: any, oldData: any) => {
+                    for (const key of Object.keys(newData)) {
+                        let newValue = newData[key];
+                        let oldValue = oldData[key];
+
+                        // Normalize dates for comparison
+                        if (key.includes('date') || key.includes('_at')) {
+                            const dNew = newValue ? new Date(newValue).getTime() : 0;
+                            const dOld = oldValue ? new Date(oldValue).getTime() : 0;
+                            if (dNew !== dOld) return true;
+                            continue;
+                        }
+
+                        // Treat null/undefined/empty string as equivalent for most fields
+                        if (!newValue && !oldValue) continue;
+                        
+                        if (newValue !== oldValue) return true;
+                    }
+                    return false;
+                };
 
                 let createdCount = 0;
                 let updatedCount = 0;
@@ -187,6 +251,7 @@ async function handleSync(request: Request) {
                 // Wait, we DO NOT have email in profiles easily accessible without admin join, 
                 // but we CAN fetch all auth users from supabaseAdmin to build an email lookup!
                 const emailToAuthId: Record<string, string> = {};
+                const idToEmail: Record<string, string> = {};
 
                 let hasMoreUsers = true;
                 let page = 1;
@@ -203,8 +268,10 @@ async function handleSync(request: Request) {
                     }
 
                     usersData.users.forEach(u => {
-                        if (u.email && u.user_metadata?.organization_id === orgId) {
-                            emailToAuthId[u.email.toLowerCase()] = u.id;
+                        if (u.email) {
+                            const lowerEmail = u.email.toLowerCase().trim();
+                            emailToAuthId[lowerEmail] = u.id;
+                            idToEmail[u.id] = lowerEmail;
                         }
                     });
 
@@ -284,24 +351,16 @@ async function handleSync(request: Request) {
                     const voorsEmail = (voorsUser.email || `voors_${userCpfRaw}@org${orgId}.com`).toLowerCase();
                     const userFullName = profileData.full_name || voorsUser.userFullName || 'Usuário Integrado';
 
-                    // 1. Try to find by CPF (Only unformatted)
-                    let matchedProfileId = null;
-                    const { data: cpfMatch } = await supabaseAdmin
-                        .from('profiles')
-                        .select('id')
-                        .eq('cpf', userCpfRaw)
-                        .eq('organization_id', orgId)
-                        .maybeSingle();
-
-                    if (cpfMatch) {
-                        matchedProfileId = cpfMatch.id;
-                    }
-                    // 2. Try to find by Email in Auth mapped to Profile
-                    else if (emailToAuthId[voorsEmail]) {
-                        matchedProfileId = emailToAuthId[voorsEmail];
+                    // 1. Try to find by CPF in our local map
+                    let matchedProfile = cpfToProfileMap[userCpfRaw];
+                    
+                    // 2. Try to find by Email in Auth mapped to Profile ID in our local map
+                    if (!matchedProfile && emailToAuthId[voorsEmail]) {
+                        matchedProfile = idToProfileMap[emailToAuthId[voorsEmail]];
                     }
 
-                    if (matchedProfileId) {
+                    if (matchedProfile) {
+                        const matchedProfileId = matchedProfile.id;
                         // Update existing profile!
                         if (!profileData.cpf) profileData.cpf = userCpfRaw; // Ensure numeric CPF is saved
 
@@ -309,15 +368,40 @@ async function handleSync(request: Request) {
                         delete profileData.email;
 
                         if (Object.keys(profileData).length > 0) {
-                            const { error: upErr } = await supabaseAdmin
-                                .from('profiles')
-                                .update(profileData)
-                                .eq('id', matchedProfileId);
+                            // 1. Sync Email if changed in Voors (Update Auth User)
+                            const currentEmail = idToEmail[matchedProfileId];
+                            const newVoorsEmail = voorsUser.email?.toLowerCase().trim();
+                            
+                            // Only update if Voors provided an explicit email and it's different from current
+                            if (newVoorsEmail && newVoorsEmail !== currentEmail) {
+                                console.log(`[Voors Sync] Updating email for ${userFullName}: ${currentEmail} -> ${newVoorsEmail}`);
+                                const { error: emailUpdateErr } = await supabaseAdmin.auth.admin.updateUserById(matchedProfileId, {
+                                    email: newVoorsEmail,
+                                    email_confirm: true,
+                                    user_metadata: { organization_id: orgId } // Force metadata repair
+                                });
+                                
+                                if (emailUpdateErr) {
+                                    console.error(`[Voors Sync] Error updating email for ${matchedProfileId} (${userFullName}):`, emailUpdateErr.message);
+                                } else {
+                                    idToEmail[matchedProfileId] = newVoorsEmail;
+                                    // Update emailToAuthId map too in case another record has this email
+                                    emailToAuthId[newVoorsEmail] = matchedProfileId; 
+                                }
+                            }
 
-                            if (upErr) {
-                                console.error('Erro ao atualizar', userFullName, upErr);
-                            } else {
-                                updatedCount++;
+                            // 2. Sync Profile data ONLY IF DIFFERENT
+                            if (isDifferent(profileData, matchedProfile)) {
+                                const { error: upErr } = await supabaseAdmin
+                                    .from('profiles')
+                                    .update(profileData)
+                                    .eq('id', matchedProfileId);
+
+                                if (upErr) {
+                                    console.error('Erro ao atualizar', userFullName, upErr);
+                                } else {
+                                    updatedCount++;
+                                }
                             }
                         }
                     } else {
@@ -365,7 +449,7 @@ async function handleSync(request: Request) {
                     .from('voors_sync_history')
                     .insert({
                         organization_id: orgId,
-                        trigger_type: authHeader ? 'manual' : 'cron',
+                        trigger_type: triggerType,
                         status: 'success',
                         total_users_fetched: payload.length,
                         total_users_created: createdCount,
@@ -374,6 +458,7 @@ async function handleSync(request: Request) {
                         inactive_users_count: inactiveCount
                     });
 
+                console.log(`[Voors Sync] Org ${orgId}: ${createdCount} created, ${updatedCount} updated, ${activeCount} active, ${inactiveCount} inactive`);
                 results.push({ orgId, status: 'success', created: createdCount, updated: updatedCount, active: activeCount, inactive: inactiveCount });
 
             } catch (err: any) {
@@ -384,7 +469,7 @@ async function handleSync(request: Request) {
                     .from('voors_sync_history')
                     .insert({
                         organization_id: orgId,
-                        trigger_type: authHeader ? 'manual' : 'cron',
+                        trigger_type: triggerType,
                         status: 'error',
                         error_message: err.message
                     });
@@ -393,10 +478,13 @@ async function handleSync(request: Request) {
             }
         }
 
+        const elapsed = ((Date.now() - syncStartTime) / 1000).toFixed(1);
+        console.log(`[Voors Sync] Completed in ${elapsed}s. Results: ${JSON.stringify(results)}`);
         return new Response(JSON.stringify({ success: true, results }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
     } catch (error: any) {
-        console.error('Voors API Route Error:', error);
+        const elapsed = ((Date.now() - syncStartTime) / 1000).toFixed(1);
+        console.error(`[Voors Sync] Fatal error after ${elapsed}s:`, error);
         return new Response(JSON.stringify({ error: error.message || 'Internal Server Error' }), { status: 500 });
     }
 }
