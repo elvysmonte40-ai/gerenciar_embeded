@@ -47,7 +47,7 @@ export const POST: APIRoute = async ({ request }) => {
         const isConfirmed = !!targetUser.user.confirmed_at;
         
         const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.generateLink({
-            type: isConfirmed ? 'recovery' : 'invite',
+            type: 'recovery',
             email: targetEmail,
             options: {
                 redirectTo: `${baseUrl}/update-password`,

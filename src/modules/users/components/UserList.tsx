@@ -234,7 +234,14 @@ export default function UserList() {
             setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus } : u));
 
         } catch (err: any) {
-            alert("Erro ao atualizar status: " + err.message);
+            setConfirmModal({
+                isOpen: true,
+                title: 'Erro ao Atualizar',
+                message: err.message || 'Ocorreu um erro inesperado.',
+                confirmLabel: 'Entendi',
+                type: 'danger',
+                onConfirm: () => setConfirmModal(prev => ({ ...prev, isOpen: false }))
+            });
         }
     };
 
@@ -513,8 +520,17 @@ export default function UserList() {
                             />
                             <button 
                                 onClick={() => {
-                                    navigator.clipboard.writeText(emailMessage.link!);
-                                    alert("Link copiado!");
+                                    if (emailMessage.link) {
+                                        navigator.clipboard.writeText(emailMessage.link);
+                                        setConfirmModal({
+                                            isOpen: true,
+                                            title: '✅ Link Copiado!',
+                                            message: 'O link de ativação foi copiado para a área de transferência. Você já pode enviá-lo ao colaborador.',
+                                            confirmLabel: 'Entendi',
+                                            type: 'success',
+                                            onConfirm: () => setConfirmModal(prev => ({ ...prev, isOpen: false }))
+                                        });
+                                    }
                                 }}
                                 className="px-2 py-1.5 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700"
                             >
