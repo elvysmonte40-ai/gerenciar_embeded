@@ -213,7 +213,7 @@ async function handleSync(request: Request) {
                 }
 
                 // Helper to check if data is actually different
-                const isDifferent = (newData: any, oldData: any) => {
+                const isDifferent = (newData: any, oldData: any, debug = false) => {
                     for (const key of Object.keys(newData)) {
                         let newValue = newData[key];
                         let oldValue = oldData[key];
@@ -222,14 +222,21 @@ async function handleSync(request: Request) {
                         if (key.includes('date') || key.includes('_at')) {
                             const dNew = newValue ? new Date(newValue).getTime() : 0;
                             const dOld = oldValue ? new Date(oldValue).getTime() : 0;
-                            if (dNew !== dOld) return true;
+                            if (dNew !== dOld) {
+                                if (debug) console.log(`[Voors Sync] Diff in ${key}: ${dNew} !== ${dOld}`);
+                                return true;
+                            }
                             continue;
                         }
 
                         // Treat null/undefined/empty string as equivalent for most fields
-                        if (!newValue && !oldValue) continue;
+                        const normalizedNew = (newValue === null || newValue === undefined || newValue === '') ? null : String(newValue).trim();
+                        const normalizedOld = (oldValue === null || oldValue === undefined || oldValue === '') ? null : String(oldValue).trim();
                         
-                        if (newValue !== oldValue) return true;
+                        if (normalizedNew !== normalizedOld) {
+                            if (debug) console.log(`[Voors Sync] Diff in ${key}: "${normalizedNew}" !== "${normalizedOld}"`);
+                            return true;
+                        }
                     }
                     return false;
                 };
@@ -396,7 +403,19 @@ async function handleSync(request: Request) {
                             }
 
                             // 2. Sync Profile data ONLY IF DIFFERENT
-                            if (isDifferent(profileData, matchedProfile)) {
+                            const isUserDebug = userCpfRaw === '70413546284';
+                            if (isUserDebug) {
+                                console.log(`[Voors Sync] Debugging user ${userFullName}:`, {
+                                    currentEmail,
+                                    newVoorsEmail,
+                                    profileDataKeys: Object.keys(profileData),
+                                    profileData,
+                                    matchedProfileKeys: Object.keys(matchedProfile)
+                                });
+                            }
+
+                            if (isDifferent(profileData, matchedProfile, isUserDebug)) {
+                                if (isUserDebug) console.log(`[Voors Sync] User ${userFullName} marked as DIFFERENT, updating...`);
                                 const { error: upErr } = await supabaseAdmin
                                     .from('profiles')
                                     .update(profileData)

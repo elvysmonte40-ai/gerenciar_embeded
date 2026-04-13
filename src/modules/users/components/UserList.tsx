@@ -25,6 +25,8 @@ interface UserProfile {
     departments?: { name: string };
     sectors?: { name: string };
     organization_role_id?: string;
+    is_activated?: boolean;
+    activated_at?: string;
 }
 
 export default function UserList() {
@@ -56,7 +58,7 @@ export default function UserList() {
 
     // Email actions
     const [emailSending, setEmailSending] = useState<string | null>(null);
-    const [emailMessage, setEmailMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [emailMessage, setEmailMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string; link?: string } | null>(null);
 
     useEffect(() => {
         loadPermissions();
@@ -124,6 +126,7 @@ export default function UserList() {
                     id, full_name, role, status, created_at, organization_id, cpf, birth_date, can_export_data,
                     manager_id, manager_name, employee_id, gender, admission_date, inactivation_date,
                     job_title_id, department_id, sector_id, organization_role_id,
+                    is_activated, activated_at,
                     job_titles:job_title_id(title),
                     departments:department_id(name),
                     sectors:sector_id(name)
@@ -229,6 +232,54 @@ export default function UserList() {
             setEmailMessage({ type: 'success', text: data.message });
             setTimeout(() => setEmailMessage(null), 4000);
         } catch (err: any) {
+            setEmailMessage({ type: 'error', text: err.message });
+            setTimeout(() => setEmailMessage(null), 4000);
+        } finally {
+            setEmailSending(null);
+        }
+    };
+
+    const handleActivateManual = async (user: UserProfile) => {
+        if (!confirm(`Deseja ativar manualmente o usuário ${user.full_name}? Isso gerará um link de acesso para você compartilhar.`)) return;
+
+        setEmailSending(user.id);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error('Sessão expirada');
+
+            const res = await fetch('/api/users/activate-manual', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ userId: user.id }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Falha ao ativar');
+
+            // Atualizar estado local (REMOVIDO: a ativação ocorre pelo usuário final)
+            // setUsers(users.map(u => u.id === user.id ? { ...u, is_activated: true, activated_at: new Date().toISOString() } : u));
+
+            const setupLink = data.setupLink;
+            if (setupLink) {
+                try {
+                    await navigator.clipboard.writeText(setupLink);
+                    alert(`✅ Link de ativação para ${user.full_name} copiado para a área de transferência!\n\nEnvie-o para o colaborador definir sua senha.`);
+                } catch (clipErr) {
+                    console.error("Falha ao copiar:", clipErr);
+                    setEmailMessage({ 
+                        type: 'info', 
+                        text: `Usuário ativado! Clique no link abaixo para copiar manualmente:`,
+                        link: setupLink
+                    });
+                }
+            } else {
+                throw new Error("Link não gerado pela API.");
+            }
+        } catch (err: any) {
+
             setEmailMessage({ type: 'error', text: err.message });
             setTimeout(() => setEmailMessage(null), 4000);
         } finally {
@@ -382,8 +433,40 @@ export default function UserList() {
             </div>
 
             {emailMessage && (
-                <div className={`px-4 py-3 rounded-lg text-sm flex items-center gap-2 ${emailMessage.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                    {emailMessage.type === 'success' ? '✅' : '❌'} {emailMessage.text}
+                <div className={`px-4 py-3 rounded-lg text-sm flex flex-col gap-2 ${
+                    emailMessage.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 
+                    emailMessage.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                    'bg-blue-50 text-blue-700 border border-blue-200'
+                }`}>
+                    <div className="flex items-center gap-2">
+                        {emailMessage.type === 'success' ? '✅' : emailMessage.type === 'error' ? '❌' : 'ℹ️'} {emailMessage.text}
+                        {emailMessage.type !== 'info' && (
+                            <button onClick={() => setEmailMessage(null)} className="ml-auto text-current opacity-50 hover:opacity-100">&times;</button>
+                        )}
+                    </div>
+                    {emailMessage.link && (
+                        <div className="flex items-center gap-2 mt-1">
+                            <input 
+                                type="text" 
+                                readOnly 
+                                value={emailMessage.link}
+                                className="flex-1 text-xs p-1.5 border border-blue-200 rounded bg-white"
+                                onClick={(e) => (e.target as HTMLInputElement).select()}
+                            />
+                            <button 
+                                onClick={() => {
+                                    navigator.clipboard.writeText(emailMessage.link!);
+                                    alert("Link copiado!");
+                                }}
+                                className="px-2 py-1.5 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700"
+                            >
+                                Copiar Link
+                            </button>
+                            <button onClick={() => setEmailMessage(null)} className="px-2 py-1.5 border border-blue-300 rounded text-xs font-medium hover:bg-blue-100">
+                                Fechar
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -416,6 +499,9 @@ export default function UserList() {
                                 <th scope="col" className="px-4 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
                                     Cadastro
                                 </th>
+                                <th scope="col" className="px-4 py-3 text-left text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
+                                    1º Login
+                                </th>
                                 <th scope="col" className="px-4 py-3 text-right text-[11.5px] font-semibold text-text-secondary uppercase tracking-wider">
                                     Ações
                                 </th>
@@ -432,7 +518,7 @@ export default function UserList() {
                                                 </div>
                                             </div>
                                             <div className="ml-3">
-                                                <div className="text-[13px] font-semibold text-text-primary truncate max-w-[180px]" title={user.full_name}>{user.full_name || 'Sem nome'}</div>
+                                                <div className="text-[13px] font-semibold text-text-primary truncate max-w-[250px]" title={user.full_name}>{user.full_name || 'Sem nome'}</div>
                                             </div>
                                         </div>
                                     </td>
@@ -461,6 +547,9 @@ export default function UserList() {
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-[12px] text-text-secondary">
                                         {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-[12px] text-text-secondary">
+                                        {user.activated_at ? new Date(user.activated_at).toLocaleDateString('pt-BR') : '-'}
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-right">
                                         <div className="flex justify-end items-center gap-1">
@@ -494,6 +583,16 @@ export default function UserList() {
                                                         title="Enviar Email de Boas-vindas"
                                                     >
                                                         <span className="text-[14px]">🎉</span>
+                                                    </button>
+
+                                                    {/* Ativação Manual */}
+                                                    <button
+                                                        onClick={() => handleActivateManual(user)}
+                                                        disabled={emailSending === user.id}
+                                                        className="p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-500 hover:text-emerald-600 transition-all active:scale-95 disabled:opacity-50"
+                                                        title="Ativação Manual (sem e-mail)"
+                                                    >
+                                                        <span className="text-[14px]">🔑</span>
                                                     </button>
 
                                                     {/* Reset Senha */}
