@@ -3,6 +3,9 @@ import { supabase } from '../../../lib/supabase';
 import UserForm from './UserForm';
 import { fetchUserPermissions, hasPermission } from '../../../utils/permissions';
 import type { AppPermissions } from '../../../types/dashboard';
+import ConfirmationModal from '../../../components/ConfirmationModal';
+import { createPortal } from 'react-dom';
+
 
 interface UserProfile {
     id: string;
@@ -59,6 +62,23 @@ export default function UserList() {
     // Email actions
     const [emailSending, setEmailSending] = useState<string | null>(null);
     const [emailMessage, setEmailMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string; link?: string } | null>(null);
+
+    // Modal state
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        type: 'danger' | 'info' | 'success' | 'warning';
+        confirmLabel?: string;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+        type: 'info'
+    });
+
 
     useEffect(() => {
         loadPermissions();
@@ -188,10 +208,20 @@ export default function UserList() {
     const handleToggleStatus = async (userId: string, currentStatus: string) => {
         const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
         const actionName = currentStatus === 'active' ? 'Inativar' : 'Ativar';
+        const type = currentStatus === 'active' ? 'danger' : 'info';
 
-        if (!confirm(`${actionName} este usuário?`)) return;
+        setConfirmModal({
+            isOpen: true,
+            title: `${actionName} Colaborador`,
+            message: `Tem certeza que deseja ${currentStatus === 'active' ? 'inativar' : 'ativar'} este colaborador?`,
+            confirmLabel: actionName,
+            type: type,
+            onConfirm: () => executeToggleStatus(userId, newStatus)
+        });
+    };
 
-        // Optimistic update
+    const executeToggleStatus = async (userId: string, newStatus: string) => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
         try {
             const { error } = await supabase
                 .from('profiles')
@@ -210,8 +240,19 @@ export default function UserList() {
 
     const handleSendEmail = async (userId: string, type: 'welcome' | 'password_reset', userName: string) => {
         const typeLabel = type === 'welcome' ? 'boas-vindas' : 'redefinição de senha';
-        if (!confirm(`Enviar email de ${typeLabel} para ${userName}?`)) return;
+        
+        setConfirmModal({
+            isOpen: true,
+            title: `Enviar E-mail`,
+            message: `Deseja enviar o e-mail de ${typeLabel} para ${userName}?`,
+            confirmLabel: 'Enviar E-mail',
+            type: 'info',
+            onConfirm: () => executeSendEmail(userId, type)
+        });
+    };
 
+    const executeSendEmail = async (userId: string, type: 'welcome' | 'password_reset') => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
         setEmailSending(userId);
         try {
             const { data: { session } } = await supabase.auth.getSession();
@@ -240,8 +281,18 @@ export default function UserList() {
     };
 
     const handleActivateManual = async (user: UserProfile) => {
-        if (!confirm(`Deseja ativar manualmente o usuário ${user.full_name}? Isso gerará um link de acesso para você compartilhar.`)) return;
+        setConfirmModal({
+            isOpen: true,
+            title: `Ativação Manual`,
+            message: `Deseja gerar um link de ativação para ${user.full_name}? O colaborador não será ativado agora; ele precisará usar o link para definir sua senha e concluir o acesso.`,
+            confirmLabel: 'Gerar Link',
+            type: 'success',
+            onConfirm: () => executeActivateManual(user)
+        });
+    };
 
+    const executeActivateManual = async (user: UserProfile) => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
         setEmailSending(user.id);
         try {
             const { data: { session } } = await supabase.auth.getSession();
@@ -266,7 +317,14 @@ export default function UserList() {
             if (setupLink) {
                 try {
                     await navigator.clipboard.writeText(setupLink);
-                    alert(`✅ Link de ativação para ${user.full_name} copiado para a área de transferência!\n\nEnvie-o para o colaborador definir sua senha.`);
+                    setConfirmModal({
+                        isOpen: true,
+                        title: `✅ Link Copiado!`,
+                        message: `O link de ativação para ${user.full_name} foi copiado para a área de transferência. Agora você pode enviá-lo diretamente para o colaborador.`,
+                        confirmLabel: 'Entendi',
+                        type: 'success',
+                        onConfirm: () => setConfirmModal(prev => ({ ...prev, isOpen: false }))
+                    });
                 } catch (clipErr) {
                     console.error("Falha ao copiar:", clipErr);
                     setEmailMessage({ 
@@ -669,7 +727,11 @@ export default function UserList() {
                             </div>
                         </div>
                     </div>
-                )}
+                {/* Confirmation Modal */}
+                <ConfirmationModal 
+                    {...confirmModal}
+                    onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                />
             </div>
         </div>
     );
