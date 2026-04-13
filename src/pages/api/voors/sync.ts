@@ -193,7 +193,7 @@ async function handleSync(request: Request) {
                 // Build lookup maps based on ALL current profiles for this org
                 // Fetching columns we need to compare
                 const { data: allProfiles } = await supabaseAdmin.from('profiles')
-                    .select('id, full_name, role, status, cpf, birth_date, can_export_data, manager_id, manager_name, gender, admission_date, inactivation_date, job_title_id, department_id, sector_id, organization_role_id')
+                    .select('id, full_name, role, status, cpf, birth_date, can_export_data, manager_id, manager_name, gender, admission_date, inactivation_date, job_title_id, department_id, sector_id, organization_role_id, email')
                     .eq('organization_id', orgId);
 
                 const nameToProfileIdMap: Record<string, string> = {};
@@ -370,22 +370,27 @@ async function handleSync(request: Request) {
                         if (Object.keys(profileData).length > 0) {
                             // 1. Sync Email if changed in Voors (Update Auth User)
                             const currentEmail = idToEmail[matchedProfileId];
-                            const newVoorsEmail = voorsUser.email?.toLowerCase().trim();
+                            const newVoorsEmail = (voorsUser.email || profileData.email)?.toLowerCase().trim();
                             
                             // Only update if Voors provided an explicit email and it's different from current
                             if (newVoorsEmail && newVoorsEmail !== currentEmail) {
-                                console.log(`[Voors Sync] Updating email for ${userFullName}: ${currentEmail} -> ${newVoorsEmail}`);
+                                console.log(`[Voors Sync] Updating email for ${userFullName} (CPF: ${userCpfRaw}): ${currentEmail} -> ${newVoorsEmail}`);
                                 const { error: emailUpdateErr } = await supabaseAdmin.auth.admin.updateUserById(matchedProfileId, {
                                     email: newVoorsEmail,
                                     email_confirm: true,
-                                    user_metadata: { organization_id: orgId } // Force metadata repair
+                                    user_metadata: { 
+                                        organization_id: orgId,
+                                        sync_source: 'voors',
+                                        last_email_sync: new Date().toISOString()
+                                    }
                                 });
                                 
                                 if (emailUpdateErr) {
-                                    console.error(`[Voors Sync] Error updating email for ${matchedProfileId} (${userFullName}):`, emailUpdateErr.message);
+                                    console.error(`[Voors Sync] CRITICAL: Error updating AUTH email for ${matchedProfileId} (${userFullName}):`, emailUpdateErr.message);
+                                    // If auth update fails, we should NOT update the profile email to keep them in sync with current state
+                                    delete profileData.email;
                                 } else {
                                     idToEmail[matchedProfileId] = newVoorsEmail;
-                                    // Update emailToAuthId map too in case another record has this email
                                     emailToAuthId[newVoorsEmail] = matchedProfileId; 
                                 }
                             }
