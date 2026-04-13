@@ -339,7 +339,8 @@ async function handleSync(request: Request) {
                     const allowedColumns = [
                         'full_name', 'role', 'status', 'cpf', 'birth_date', 'can_export_data',
                         'manager_id', 'manager_name', 'gender', 'admission_date', 'inactivation_date',
-                        'job_title_id', 'department_id', 'sector_id', 'organization_role_id'
+                        'job_title_id', 'department_id', 'sector_id', 'organization_role_id',
+                        'email'
                     ];
                     for (const k of Object.keys(profileData)) {
                         if (!allowedColumns.includes(k)) {
@@ -364,8 +365,7 @@ async function handleSync(request: Request) {
                         // Update existing profile!
                         if (!profileData.cpf) profileData.cpf = userCpfRaw; // Ensure numeric CPF is saved
 
-                        // We safely remove properties that shouldn't be in profiles
-                        delete profileData.email;
+                        // We keep the email in profileData so it syncs to the profiles table
 
                         if (Object.keys(profileData).length > 0) {
                             // 1. Sync Email if changed in Voors (Update Auth User)
