@@ -83,8 +83,10 @@ export const POST: APIRoute = async ({ request }) => {
         // Send Welcome Email with password setup link — this activates the account
         if (sendWelcome) {
             const baseUrl = import.meta.env.PUBLIC_SITE_URL || 'https://mis.online.net.br';
+            
+            // If user was created with password, they are auto-confirmed. Use recovery for the link.
             const { data: resetData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-                type: 'invite',
+                type: password ? 'recovery' : 'invite',
                 email,
                 options: {
                     redirectTo: `${baseUrl}/update-password`,

@@ -42,10 +42,12 @@ export const POST: APIRoute = async ({ request }) => {
             return new Response(JSON.stringify({ error: 'Usuário sem e-mail cadastrado' }), { status: 400 });
         }
 
-        // Generate invitation link (same as welcome email)
+        // Generate activation link (use recovery if already confirmed, invite otherwise)
         const baseUrl = import.meta.env.PUBLIC_SITE_URL || new URL(request.url).origin;
+        const isConfirmed = !!targetUser.user.confirmed_at;
+        
         const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.generateLink({
-            type: 'invite',
+            type: isConfirmed ? 'recovery' : 'invite',
             email: targetEmail,
             options: {
                 redirectTo: `${baseUrl}/update-password`,
