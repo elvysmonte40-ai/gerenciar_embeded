@@ -172,25 +172,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, userToEdit }: Use
             if (userToEdit) {
                 setFullName(userToEdit.full_name || '');
                 setRole(userToEdit.role || 'user');
-                setEmail(''); // Reset email, will fetch below
-                // Fetch latest email from API
-                const fetchEmail = async () => {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    if (!session) return;
-
-                    try {
-                        const res = await fetch(`/api/users/${userToEdit.id}`, {
-                            headers: { Authorization: `Bearer ${session.access_token}` }
-                        });
-                        if (res.ok) {
-                            const data = await res.json();
-                            if (data.email) setEmail(data.email);
-                        }
-                    } catch (e) {
-                        console.error("Error fetching email", e);
-                    }
-                };
-                fetchEmail();
+                setEmail(userToEdit.email || '');
 
                 let loadedCpf = userToEdit.cpf || '';
                 if (loadedCpf.length === 11) {

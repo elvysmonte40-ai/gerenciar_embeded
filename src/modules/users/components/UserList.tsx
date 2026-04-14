@@ -30,6 +30,7 @@ interface UserProfile {
     organization_role_id?: string;
     is_activated?: boolean;
     activated_at?: string;
+    email?: string;
 }
 
 export default function UserList() {
@@ -146,7 +147,7 @@ export default function UserList() {
                     id, full_name, role, status, created_at, organization_id, cpf, birth_date, can_export_data,
                     manager_id, manager_name, employee_id, gender, admission_date, inactivation_date,
                     job_title_id, department_id, sector_id, organization_role_id,
-                    is_activated, activated_at,
+                    is_activated, activated_at, email,
                     job_titles:job_title_id(title),
                     departments:department_id(name),
                     sectors:sector_id(name)
