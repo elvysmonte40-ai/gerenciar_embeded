@@ -192,9 +192,31 @@ async function handleSync(request: Request) {
 
                 // Build lookup maps based on ALL current profiles for this org
                 // Fetching columns we need to compare
-                const { data: allProfiles } = await supabaseAdmin.from('profiles')
-                    .select('id, full_name, role, status, cpf, birth_date, can_export_data, manager_id, manager_name, gender, admission_date, inactivation_date, job_title_id, department_id, sector_id, organization_role_id, email')
-                    .eq('organization_id', orgId);
+                const allProfiles: any[] = [];
+                let hasMoreProfiles = true;
+                let offset = 0;
+                const batchSize = 1000;
+
+                while (hasMoreProfiles) {
+                    const { data: batch, error: batchErr } = await supabaseAdmin.from('profiles')
+                        .select('id, full_name, role, status, cpf, birth_date, can_export_data, manager_id, manager_name, gender, admission_date, inactivation_date, job_title_id, department_id, sector_id, organization_role_id, email')
+                        .eq('organization_id', orgId)
+                        .range(offset, offset + batchSize - 1);
+
+                    if (batchErr) {
+                        console.error("[Voors Sync] Error fetching profiles batch:", batchErr);
+                        break;
+                    }
+
+                    if (batch && batch.length > 0) {
+                        allProfiles.push(...batch);
+                        offset += batchSize;
+                        if (batch.length < batchSize) hasMoreProfiles = false;
+                    } else {
+                        hasMoreProfiles = false;
+                    }
+                }
+                console.log(`[Voors Sync] Total profiles loaded: ${allProfiles.length}`);
 
                 const nameToProfileIdMap: Record<string, string> = {};
                 const cpfToProfileMap: Record<string, any> = {};
@@ -206,7 +228,8 @@ async function handleSync(request: Request) {
                             nameToProfileIdMap[p.full_name.trim().toLowerCase()] = p.id;
                         }
                         if (p.cpf) {
-                            cpfToProfileMap[p.cpf] = p;
+                            const cleanedCpfInDb = p.cpf.replace(/\D/g, '');
+                            cpfToProfileMap[cleanedCpfInDb] = p;
                         }
                         idToProfileMap[p.id] = p;
                     });
@@ -260,6 +283,8 @@ async function handleSync(request: Request) {
                 const emailToAuthId: Record<string, string> = {};
                 const idToEmail: Record<string, string> = {};
 
+                let hasMoreUsers = true;
+                let page = 1;
                 let loadedUsersCount = 0;
                 while (hasMoreUsers) {
                     const { data: usersData, error: usersErr } = await supabaseAdmin.auth.admin.listUsers({
@@ -296,12 +321,21 @@ async function handleSync(request: Request) {
 
                     const userCpfRaw = cleanCpf(rawCpf);
                     if (!userCpfRaw || userCpfRaw.length !== 11) continue;
+                    
+                    const userFullName = voorsUser.userFullName || voorsUser.Name || voorsUser.full_name || 'Usuário Sem Nome';
+
+                    // Specific user for deep logging (Ana Luiza)
+                    const isUserDebug = userCpfRaw === '06332593300';
 
                     // Build profile data based on mappings
                     const profileData: any = {};
                     for (const [vKey, val] of Object.entries(voorsUser)) {
                         const sysCol = mappingDict[vKey];
-                        if (sysCol && val !== undefined) {
+                            if (isUserDebug) {
+                                console.log(`[Voors Sync] DEBUG Mapping for ${userFullName}: Key "${vKey}", Value "${val}", SystemCol "${sysCol}"`);
+                            }
+
+                            if (sysCol && val !== undefined) {
                             if (val === null || String(val).trim() === "") {
                                 // Se os dados vierem em branco (nulo ou vazio) do Voors, 
                                 // vamos limpar no banco também para refletir a exclusão (ex: sem cargo, sem departamento)
@@ -358,7 +392,6 @@ async function handleSync(request: Request) {
 
                     // For email fallback if not mapped or empty
                     const voorsEmail = (voorsUser.email || `voors_${userCpfRaw}@org${orgId}.com`).toLowerCase();
-                    const userFullName = profileData.full_name || voorsUser.userFullName || 'Usuário Integrado';
 
                     // 1. Try to find by CPF in our local map
                     let matchedProfile = cpfToProfileMap[userCpfRaw];
@@ -368,21 +401,38 @@ async function handleSync(request: Request) {
                         matchedProfile = idToProfileMap[emailToAuthId[voorsEmail]];
                     }
 
+                    if (isUserDebug) {
+                        console.log(`[Voors Sync] DEBUG Final profileData for ${userFullName}:`, JSON.stringify(profileData));
+                    }
+
                     if (matchedProfile) {
                         const matchedProfileId = matchedProfile.id;
                         // Update existing profile!
                         if (!profileData.cpf) profileData.cpf = userCpfRaw; // Ensure numeric CPF is saved
+                        
+                        // Force email into profileData if it was found in voorsUser but maybe missed by mapping
+                        if (!profileData.email && (voorsUser.email || voorsUser.Email)) {
+                            profileData.email = (voorsUser.email || voorsUser.Email).toLowerCase().trim();
+                            if (isUserDebug) console.log(`[Voors Sync] DEBUG Forced email into profileData: ${profileData.email}`);
+                        }
 
                         // We keep the email in profileData so it syncs to the profiles table
 
                         if (Object.keys(profileData).length > 0) {
                             // 1. Sync Email if changed in Voors (Update Auth User)
-                            const currentEmail = idToEmail[matchedProfileId];
-                            const newVoorsEmail = (voorsUser.email || profileData.email)?.toLowerCase().trim();
+                            // Get current email from Auth mapping, fallback to profile email if mapping missed it
+                            let currentEmail = idToEmail[matchedProfileId] || matchedProfile.email;
                             
+                            // Prioritize the email from mapping, fallback to voorsUser.email
+                            const newVoorsEmail = (profileData.email || voorsUser.email || voorsUser.Email)?.toLowerCase().trim();
+                            
+                            if (isUserDebug) {
+                                console.log(`[Voors Sync] ${userFullName} Check: AuthMap=${idToEmail[matchedProfileId]}, Profile=${matchedProfile.email}, New=${newVoorsEmail}`);
+                            }
+
                             // Only update if Voors provided an explicit email and it's different from current
-                            if (newVoorsEmail && newVoorsEmail !== currentEmail) {
-                                console.log(`[Voors Sync] Updating email for ${userFullName} (CPF: ${userCpfRaw}): "${currentEmail}" -> "${newVoorsEmail}"`);
+                            if (newVoorsEmail && newVoorsEmail !== currentEmail?.toLowerCase().trim()) {
+                                console.log(`[Voors Sync] ${userFullName}: Email change detected! "${currentEmail}" -> "${newVoorsEmail}"`);
                                 const { error: emailUpdateErr } = await supabaseAdmin.auth.admin.updateUserById(matchedProfileId, {
                                     email: newVoorsEmail,
                                     email_confirm: true,
@@ -394,23 +444,18 @@ async function handleSync(request: Request) {
                                 });
                                 
                                 if (emailUpdateErr) {
-                                    console.error(`[Voors Sync] CRITICAL: Error updating AUTH email for ${matchedProfileId} (${userFullName}):`, emailUpdateErr.message);
-                                    // If auth update fails, we should NOT update the profile email to keep them in sync with current state
-                                    delete profileData.email;
+                                    console.error(`[Voors Sync] EXCEPTION: Auth email update failed for ${userFullName} (${matchedProfileId}):`, emailUpdateErr.message);
+                                    // We still keep profileData.email to attempt profile update if it was mapped, 
+                                    // but usually we want them in sync. 
+                                    // If it's a "duplicate email" error, it will fail here.
                                 } else {
-                                    console.log(`[Voors Sync] Email updated successfully for ${userFullName}`);
+                                    console.log(`[Voors Sync] SUCCESS: Auth email updated for ${userFullName}`);
                                     idToEmail[matchedProfileId] = newVoorsEmail;
                                     emailToAuthId[newVoorsEmail] = matchedProfileId; 
                                 }
-                            } else if (newVoorsEmail && newVoorsEmail === currentEmail) {
-                                // No change needed, but let's log if it's the debug user
-                                if (isUserDebug) console.log(`[Voors Sync] Email check: skip update, emails are identical: "${newVoorsEmail}"`);
-                            } else {
-                                if (isUserDebug) console.log(`[Voors Sync] Email check: skip update, no new email provided or current data missing. currentEmail: "${currentEmail}"`);
                             }
 
                             // 2. Sync Profile data ONLY IF DIFFERENT
-                            const isUserDebug = userCpfRaw === '70413546284';
                             if (isUserDebug) {
                                 console.log(`[Voors Sync] Debugging user ${userFullName}:`, {
                                     currentEmail,
