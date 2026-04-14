@@ -743,6 +743,7 @@ export default function UserList() {
                             </div>
                         </div>
                     </div>
+                )}
                 {/* Confirmation Modal */}
                 <ConfirmationModal 
                     {...confirmModal}

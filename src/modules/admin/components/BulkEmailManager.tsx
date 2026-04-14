@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { Users, Briefcase, Building, Shield, Mail, Send, CheckCircle2, AlertCircle, Eye, ChevronRight, Search, Filter } from 'lucide-react';
+import { Users, Briefcase, Building, Shield, Mail, Send, CheckCircle2, AlertCircle, Eye, Search, Filter } from 'lucide-react';
 
 interface Template {
     template_type: string;

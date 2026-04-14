@@ -10,8 +10,7 @@ import {
     CartesianGrid,
     Tooltip,
     Legend,
-    ResponsiveContainer,
-    Area
+    ResponsiveContainer
 } from 'recharts';
 import type { Indicator, IndicatorEntry } from '../types';
 import { indicatorsService } from '../services/indicatorsService';

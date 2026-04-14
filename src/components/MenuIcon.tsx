@@ -1,5 +1,18 @@
 import React from 'react';
-import * as LucideIcons from 'lucide-react';
+import {
+    BarChart3,
+    DollarSign,
+    Users,
+    ShoppingCart,
+    Package,
+    Settings,
+    TrendingUp,
+    FileText,
+    Building,
+    Truck,
+    LayoutGrid
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 interface MenuIconProps {
     iconName?: string;
@@ -7,18 +20,20 @@ interface MenuIconProps {
     className?: string; // For sizing
 }
 
-export const AVAILABLE_ICONS = [
-    'BarChart3',
-    'DollarSign',
-    'Users',
-    'ShoppingCart',
-    'Package',
-    'Settings',
-    'TrendingUp',
-    'FileText',
-    'Building',
-    'Truck'
-];
+const ICON_MAP: Record<string, LucideIcon> = {
+    BarChart3,
+    DollarSign,
+    Users,
+    ShoppingCart,
+    Package,
+    Settings,
+    TrendingUp,
+    FileText,
+    Building,
+    Truck
+};
+
+export const AVAILABLE_ICONS = Object.keys(ICON_MAP);
 
 export default function MenuIcon({ iconName, iconUrl, className = "h-5 w-5" }: MenuIconProps) {
     if (iconUrl) {
@@ -31,11 +46,11 @@ export default function MenuIcon({ iconName, iconUrl, className = "h-5 w-5" }: M
         );
     }
 
-    if (iconName && iconName in LucideIcons) {
-        const IconComponent = (LucideIcons as any)[iconName];
+    const IconComponent = iconName ? ICON_MAP[iconName] : null;
+    if (IconComponent) {
         return <IconComponent className={className} />;
     }
 
     // Default or fallback
-    return <LucideIcons.LayoutGrid className={className} />;
+    return <LayoutGrid className={className} />;
 }

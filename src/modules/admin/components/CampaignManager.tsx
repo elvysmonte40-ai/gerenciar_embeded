@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Mail, Edit, Trash2, Play } from 'lucide-react';
+import { Plus, Mail, Edit, Play } from 'lucide-react';
 import CampaignForm from './CampaignForm';
 
 export interface Campaign {
