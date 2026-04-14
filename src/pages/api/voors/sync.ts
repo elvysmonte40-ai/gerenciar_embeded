@@ -260,8 +260,7 @@ async function handleSync(request: Request) {
                 const emailToAuthId: Record<string, string> = {};
                 const idToEmail: Record<string, string> = {};
 
-                let hasMoreUsers = true;
-                let page = 1;
+                let loadedUsersCount = 0;
                 while (hasMoreUsers) {
                     const { data: usersData, error: usersErr } = await supabaseAdmin.auth.admin.listUsers({
                         page: page,
@@ -270,7 +269,7 @@ async function handleSync(request: Request) {
 
                     if (usersErr || !usersData?.users || usersData.users.length === 0) {
                         hasMoreUsers = false;
-                        if (usersErr) console.error("Error fetching admin users:", usersErr);
+                        if (usersErr) console.error("[Voors Sync] Error fetching admin users:", usersErr);
                         break;
                     }
 
@@ -282,12 +281,14 @@ async function handleSync(request: Request) {
                         }
                     });
 
+                    loadedUsersCount += usersData.users.length;
                     if (usersData.users.length < 1000) {
                         hasMoreUsers = false;
                     } else {
                         page++;
                     }
                 }
+                console.log(`[Voors Sync] Loaded ${loadedUsersCount} auth users for mapping.`);
 
                 for (const voorsUser of payload) {
                     const rawCpf = voorsUser.CPF;
@@ -381,7 +382,7 @@ async function handleSync(request: Request) {
                             
                             // Only update if Voors provided an explicit email and it's different from current
                             if (newVoorsEmail && newVoorsEmail !== currentEmail) {
-                                console.log(`[Voors Sync] Updating email for ${userFullName} (CPF: ${userCpfRaw}): ${currentEmail} -> ${newVoorsEmail}`);
+                                console.log(`[Voors Sync] Updating email for ${userFullName} (CPF: ${userCpfRaw}): "${currentEmail}" -> "${newVoorsEmail}"`);
                                 const { error: emailUpdateErr } = await supabaseAdmin.auth.admin.updateUserById(matchedProfileId, {
                                     email: newVoorsEmail,
                                     email_confirm: true,
@@ -397,9 +398,15 @@ async function handleSync(request: Request) {
                                     // If auth update fails, we should NOT update the profile email to keep them in sync with current state
                                     delete profileData.email;
                                 } else {
+                                    console.log(`[Voors Sync] Email updated successfully for ${userFullName}`);
                                     idToEmail[matchedProfileId] = newVoorsEmail;
                                     emailToAuthId[newVoorsEmail] = matchedProfileId; 
                                 }
+                            } else if (newVoorsEmail && newVoorsEmail === currentEmail) {
+                                // No change needed, but let's log if it's the debug user
+                                if (isUserDebug) console.log(`[Voors Sync] Email check: skip update, emails are identical: "${newVoorsEmail}"`);
+                            } else {
+                                if (isUserDebug) console.log(`[Voors Sync] Email check: skip update, no new email provided or current data missing. currentEmail: "${currentEmail}"`);
                             }
 
                             // 2. Sync Profile data ONLY IF DIFFERENT
